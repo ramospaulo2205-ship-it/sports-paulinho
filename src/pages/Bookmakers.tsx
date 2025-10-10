@@ -1,7 +1,9 @@
 import Navbar from "@/components/Navbar";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { bookmakers } from "@/data/mockData";
+import { ExternalLink } from "lucide-react";
 import { Building2, MapPin, Star } from "lucide-react";
 
 const Bookmakers = () => {
@@ -63,9 +65,13 @@ const Bookmakers = () => {
                 </div>
 
                 <div className="mt-4 pt-4 border-t border-border">
-                  <div className="flex gap-2">
-                    <Badge variant="outline" className="text-xs">Odds Competitivas</Badge>
-                  </div>
+                  <Button
+                    className="w-full bg-gradient-primary hover:opacity-90 text-primary-foreground border-0"
+                    onClick={() => window.open(bookmaker.url, '_blank')}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Visitar Site
+                  </Button>
                 </div>
               </Card>
             ))}
@@ -107,9 +113,13 @@ const Bookmakers = () => {
                 </div>
 
                 <div className="mt-4 pt-4 border-t border-border">
-                  <div className="flex gap-2">
-                    <Badge variant="outline" className="text-xs">Internacional</Badge>
-                  </div>
+                  <Button
+                    className="w-full bg-gradient-primary hover:opacity-90 text-primary-foreground border-0"
+                    onClick={() => window.open(bookmaker.url, '_blank')}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Visitar Site
+                  </Button>
                 </div>
               </Card>
             ))}

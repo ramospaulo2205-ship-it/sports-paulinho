@@ -8,14 +8,14 @@ export const sports: Sport[] = [
 ];
 
 export const bookmakers: Bookmaker[] = [
-  { id: "bet365", name: "Bet365", country: "UK" },
-  { id: "betano", name: "Betano", country: "BR" },
-  { id: "rivalo", name: "Rivalo", country: "BR" },
-  { id: "superbet", name: "Superbet", country: "BR" },
-  { id: "novibet", name: "Novibet", country: "BR" },
-  { id: "stake", name: "Stake", country: "International" },
-  { id: "pinnacle", name: "Pinnacle", country: "International" },
-  { id: "1xbet", name: "1xBet", country: "International" },
+  { id: "bet365", name: "Bet365", country: "UK", url: "https://www.bet365.com/" },
+  { id: "betano", name: "Betano", country: "BR", url: "https://www.betano.com/" },
+  { id: "rivalo", name: "Rivalo", country: "BR", url: "https://www.rivalo.com/" },
+  { id: "superbet", name: "Superbet", country: "BR", url: "https://www.superbet.com/" },
+  { id: "novibet", name: "Novibet", country: "BR", url: "https://www.novibet.com/" },
+  { id: "stake", name: "Stake", country: "International", url: "https://stake.com/" },
+  { id: "pinnacle", name: "Pinnacle", country: "International", url: "https://www.pinnacle.com/" },
+  { id: "1xbet", name: "1xBet", country: "International", url: "https://1xbet.com/" },
 ];
 
 export const mockEvents: Event[] = [

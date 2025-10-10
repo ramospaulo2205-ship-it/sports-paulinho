@@ -3,8 +3,9 @@ import { useSearchParams } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { mockEvents } from "@/data/mockData";
-import { Calendar, Clock, TrendingUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { mockEvents, bookmakers } from "@/data/mockData";
+import { Calendar, Clock, TrendingUp, ExternalLink } from "lucide-react";
 
 const Compare = () => {
   const [searchParams] = useSearchParams();
@@ -28,6 +29,11 @@ const Compare = () => {
   const bestHome = getBestOddByOutcome('home');
   const bestAway = getBestOddByOutcome('away');
   const bestDraw = selectedEvent.odds[0].draw ? getBestOddByOutcome('draw') : null;
+
+  const getBookmakerUrl = (bookmakerName: string) => {
+    const bookmaker = bookmakers.find(b => b.name === bookmakerName);
+    return bookmaker?.url || "#";
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -99,6 +105,9 @@ const Compare = () => {
                   <th className="text-center py-4 px-4 text-sm font-semibold text-muted-foreground">
                     {selectedEvent.awayTeam}
                   </th>
+                  <th className="text-center py-4 px-4 text-sm font-semibold text-muted-foreground">
+                    Ação
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -124,6 +133,16 @@ const Compare = () => {
                       <span className={`text-lg font-bold ${odd.away === bestAway ? 'text-secondary' : ''}`}>
                         {odd.away.toFixed(2)}
                       </span>
+                    </td>
+                    <td className="text-center py-4 px-4">
+                      <Button
+                        size="sm"
+                        className="bg-gradient-primary hover:opacity-90 text-primary-foreground border-0"
+                        onClick={() => window.open(getBookmakerUrl(odd.bookmaker), '_blank')}
+                      >
+                        <ExternalLink className="h-4 w-4 mr-1" />
+                        Apostar
+                      </Button>
                     </td>
                   </tr>
                 ))}

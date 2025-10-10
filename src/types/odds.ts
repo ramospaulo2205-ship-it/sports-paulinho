@@ -3,6 +3,7 @@ export interface Bookmaker {
   name: string;
   logo?: string;
   country: string;
+  url: string;
 }
 
 export interface Odds {
