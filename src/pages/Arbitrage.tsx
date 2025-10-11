@@ -1,11 +1,74 @@
+import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import ArbitrageCalculator from "@/components/ArbitrageCalculator";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { mockEvents, calculateArbitrage } from "@/data/mockData";
-import { TrendingUp, Calculator } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { mockEvents, calculateArbitrage, bookmakers } from "@/data/mockData";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { TrendingUp, Calculator, Save, ExternalLink } from "lucide-react";
 
 const Arbitrage = () => {
+  const { toast } = useToast();
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const saveArbitrage = async (opportunity: any) => {
+    if (!user) {
+      toast({
+        title: "Faça login",
+        description: "Você precisa estar logado para salvar oportunidades",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const stakes = [
+      { bookmaker: opportunity.homeBookmaker, outcome: opportunity.event.homeTeam, odd: opportunity.bestHome },
+      ...(opportunity.bestDraw ? [{ bookmaker: opportunity.drawBookmaker, outcome: "Empate", odd: opportunity.bestDraw }] : []),
+      { bookmaker: opportunity.awayBookmaker, outcome: opportunity.event.awayTeam, odd: opportunity.bestAway },
+    ];
+
+    const { error } = await supabase
+      .from("arbitrage_history")
+      .insert({
+        user_id: user.id,
+        event_id: opportunity.event.id,
+        profit_percentage: opportunity.profit,
+        total_stake: 1000,
+        stakes,
+      });
+
+    if (error) {
+      toast({
+        title: "Erro ao salvar",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Salvo com sucesso!",
+        description: "Oportunidade adicionada ao seu histórico",
+      });
+    }
+  };
+
+  const getBookmakerUrl = (bookmakerName: string) => {
+    const bookmaker = bookmakers.find(b => b.name === bookmakerName);
+    return bookmaker?.url || "#";
+  };
   const arbitrageOpportunities = mockEvents
     .map((event) => {
       const allOdds = event.odds.map(o => ({
@@ -115,6 +178,15 @@ const Arbitrage = () => {
                         <p className="text-xs text-muted-foreground mb-1">{opp.event.homeTeam}</p>
                         <p className="text-lg font-bold text-secondary">{opp.bestHome.toFixed(2)}</p>
                         <p className="text-xs text-muted-foreground mt-1">{opp.homeBookmaker}</p>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="mt-2 w-full text-xs"
+                          onClick={() => window.open(getBookmakerUrl(opp.homeBookmaker), '_blank')}
+                        >
+                          <ExternalLink className="h-3 w-3 mr-1" />
+                          Apostar
+                        </Button>
                       </div>
                       
                       {opp.bestDraw && opp.drawBookmaker && (
@@ -122,6 +194,15 @@ const Arbitrage = () => {
                           <p className="text-xs text-muted-foreground mb-1">Empate</p>
                           <p className="text-lg font-bold text-secondary">{opp.bestDraw.toFixed(2)}</p>
                           <p className="text-xs text-muted-foreground mt-1">{opp.drawBookmaker}</p>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="mt-2 w-full text-xs"
+                            onClick={() => window.open(getBookmakerUrl(opp.drawBookmaker), '_blank')}
+                          >
+                            <ExternalLink className="h-3 w-3 mr-1" />
+                            Apostar
+                          </Button>
                         </div>
                       )}
                       
@@ -129,13 +210,31 @@ const Arbitrage = () => {
                         <p className="text-xs text-muted-foreground mb-1">{opp.event.awayTeam}</p>
                         <p className="text-lg font-bold text-secondary">{opp.bestAway.toFixed(2)}</p>
                         <p className="text-xs text-muted-foreground mt-1">{opp.awayBookmaker}</p>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="mt-2 w-full text-xs"
+                          onClick={() => window.open(getBookmakerUrl(opp.awayBookmaker), '_blank')}
+                        >
+                          <ExternalLink className="h-3 w-3 mr-1" />
+                          Apostar
+                        </Button>
                       </div>
                     </div>
 
-                    <div className="mt-4 pt-4 border-t border-border">
+                    <div className="mt-4 pt-4 border-t border-border flex justify-between items-center">
                       <p className="text-xs text-muted-foreground">
-                        💡 Aposte em todos os resultados para garantir {opp.profit.toFixed(2)}% de lucro independente do resultado
+                        💡 Aposte em todos os resultados para garantir {opp.profit.toFixed(2)}% de lucro
                       </p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-2"
+                        onClick={() => saveArbitrage(opp)}
+                      >
+                        <Save className="h-3 w-3" />
+                        Salvar
+                      </Button>
                     </div>
                   </Card>
                 );

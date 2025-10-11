@@ -7,6 +7,8 @@ import Index from "./pages/Index";
 import Compare from "./pages/Compare";
 import Arbitrage from "./pages/Arbitrage";
 import Bookmakers from "./pages/Bookmakers";
+import Auth from "./pages/Auth";
+import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +24,8 @@ const App = () => (
           <Route path="/compare" element={<Compare />} />
           <Route path="/arbitrage" element={<Arbitrage />} />
           <Route path="/bookmakers" element={<Bookmakers />} />
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/profile" element={<Profile />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
