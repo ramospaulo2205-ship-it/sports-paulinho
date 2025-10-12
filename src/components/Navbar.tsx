@@ -22,6 +22,7 @@ const Navbar = () => {
 
   const links = [
     { path: "/", label: "Início" },
+    { path: "/live-odds", label: "Odds ao Vivo" },
     { path: "/compare", label: "Comparar" },
     { path: "/arbitrage", label: "Arbitragem" },
     { path: "/bookmakers", label: "Casas" },

@@ -9,6 +9,7 @@ import Arbitrage from "./pages/Arbitrage";
 import Bookmakers from "./pages/Bookmakers";
 import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
+import LiveOdds from "./pages/LiveOdds";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -21,6 +22,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/live-odds" element={<LiveOdds />} />
           <Route path="/compare" element={<Compare />} />
           <Route path="/arbitrage" element={<Arbitrage />} />
           <Route path="/bookmakers" element={<Bookmakers />} />

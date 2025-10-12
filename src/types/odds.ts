@@ -11,17 +11,26 @@ export interface Odds {
   home: number;
   draw?: number;
   away: number;
+  timestamp?: string;
+  previous?: {
+    home: number;
+    draw?: number;
+    away: number;
+  };
 }
 
 export interface Event {
   id: string;
   sport: string;
+  sportKey?: string;
   league: string;
   homeTeam: string;
   awayTeam: string;
   date: string;
   time: string;
   odds: Odds[];
+  commenceTime?: string;
+  isFavorite?: boolean;
 }
 
 export interface ArbitrageOpportunity {
