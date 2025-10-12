@@ -1,6 +1,9 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import OddsCard from "@/components/OddsCard";
+import SearchBar, { normalizeText } from "@/components/SearchBar";
+import LeagueFilter from "@/components/LeagueFilter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,45 +18,105 @@ const SPORTS = {
   basquete: ['basketball_nba'],
   tenis: ['tennis_atp_singles'],
   esports: ['esports_lol_worlds'],
+  ufc: ['mma_mixed_martial_arts'],
 };
 
 const LiveOdds = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<keyof typeof SPORTS>('futebol');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedLeagues, setSelectedLeagues] = useState<string[]>([]);
+  const [dateRange, setDateRange] = useState({
+    start: new Date(),
+    end: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
+  });
+  
   const { events, loading, error, lastUpdate, remainingRequests, refetch } = useOddsPolling(SPORTS[activeTab]);
-  const { isFavorite, toggleFavorite, loading: favoritesLoading } = useFavorites();
+  const { isFavorite, toggleFavorite } = useFavorites();
+
+  // Filter events based on search, leagues, and date range
+  const filteredEvents = useMemo(() => {
+    return events.filter((event) => {
+      // Search filter
+      if (searchQuery) {
+        const normalizedQuery = normalizeText(searchQuery);
+        const normalizedHome = normalizeText(event.homeTeam);
+        const normalizedAway = normalizeText(event.awayTeam);
+        const normalizedLeague = normalizeText(event.league);
+        
+        const matchesSearch =
+          normalizedHome.includes(normalizedQuery) ||
+          normalizedAway.includes(normalizedQuery) ||
+          normalizedLeague.includes(normalizedQuery);
+        
+        if (!matchesSearch) return false;
+      }
+
+      // League filter
+      if (selectedLeagues.length > 0 && !selectedLeagues.includes(event.league)) {
+        return false;
+      }
+
+      // Date filter
+      if (event.commenceTime) {
+        const eventDate = new Date(event.commenceTime);
+        if (eventDate < dateRange.start || eventDate > dateRange.end) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [events, searchQuery, selectedLeagues, dateRange]);
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
       
       <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6 animate-fade-in">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">Odds ao Vivo</h1>
-            <p className="text-muted-foreground">
-              Atualizado a cada 30 segundos
-              {lastUpdate && (
-                <span className="ml-2">
-                  • Última atualização: {lastUpdate.toLocaleTimeString('pt-BR')}
-                </span>
+        <div className="mb-6 animate-fade-in">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">Odds ao Vivo</h1>
+              <p className="text-muted-foreground">
+                Atualizado a cada 30 segundos
+                {lastUpdate && (
+                  <span className="ml-2">
+                    • Última atualização: {lastUpdate.toLocaleTimeString('pt-BR')}
+                  </span>
+                )}
+              </p>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              {remainingRequests !== null && (
+                <Badge variant="outline">
+                  {remainingRequests} requisições restantes
+                </Badge>
               )}
-            </p>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={refetch}
+                disabled={loading}
+              >
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              </Button>
+            </div>
           </div>
-          
-          <div className="flex items-center gap-2">
-            {remainingRequests !== null && (
-              <Badge variant="outline">
-                {remainingRequests} requisições restantes
-              </Badge>
-            )}
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={refetch}
-              disabled={loading}
-            >
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            </Button>
+
+          {/* Search and Filters */}
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <SearchBar onSearch={setSearchQuery} />
+            </div>
+            <LeagueFilter
+              events={events}
+              selectedLeagues={selectedLeagues}
+              onLeaguesChange={setSelectedLeagues}
+              selectedDateRange={dateRange}
+              onDateRangeChange={setDateRange}
+            />
           </div>
         </div>
 
@@ -65,11 +128,12 @@ const LiveOdds = () => {
         )}
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as keyof typeof SPORTS)} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-6">
+          <TabsList className="grid w-full grid-cols-5 mb-6">
             <TabsTrigger value="futebol">Futebol</TabsTrigger>
             <TabsTrigger value="basquete">Basquete</TabsTrigger>
             <TabsTrigger value="tenis">Tênis</TabsTrigger>
             <TabsTrigger value="esports">E-Sports</TabsTrigger>
+            <TabsTrigger value="ufc">UFC/MMA</TabsTrigger>
           </TabsList>
 
           {Object.keys(SPORTS).map((sport) => (
@@ -80,19 +144,22 @@ const LiveOdds = () => {
                     <Skeleton key={i} className="h-48 w-full" />
                   ))}
                 </div>
-              ) : events.length === 0 ? (
+              ) : filteredEvents.length === 0 ? (
                 <div className="text-center py-12">
                   <p className="text-muted-foreground">
-                    Nenhum evento disponível no momento
+                    {searchQuery || selectedLeagues.length > 0
+                      ? "Nenhum evento encontrado com os filtros aplicados"
+                      : "Nenhum evento disponível no momento"}
                   </p>
                 </div>
               ) : (
-                events.map((event) => (
+                filteredEvents.map((event) => (
                   <OddsCard
                     key={event.id}
                     event={event}
                     isFavorite={isFavorite(event.id)}
                     onToggleFavorite={toggleFavorite}
+                    onClick={() => navigate(`/evento/${event.id}`)}
                   />
                 ))
               )}

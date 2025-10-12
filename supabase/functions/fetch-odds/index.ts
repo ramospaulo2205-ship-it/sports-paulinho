@@ -19,7 +19,7 @@ serve(async (req) => {
   }
 
   try {
-    const { sports = ['soccer_brazil_campeonato', 'basketball_nba', 'tennis_atp_singles', 'esports_lol_worlds'], markets = ['h2h'] } = await req.json() as OddsRequest;
+    const { sports = ['soccer_brazil_campeonato', 'basketball_nba', 'tennis_atp_singles', 'esports_lol_worlds', 'mma_mixed_martial_arts'], markets = ['h2h'] } = await req.json() as OddsRequest;
 
     console.log(`Fetching odds for sports: ${sports.join(', ')}`);
 

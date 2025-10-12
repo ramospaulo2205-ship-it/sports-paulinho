@@ -10,6 +10,7 @@ import Bookmakers from "./pages/Bookmakers";
 import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
 import LiveOdds from "./pages/LiveOdds";
+import EventDetail from "./pages/EventDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,6 +24,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/live-odds" element={<LiveOdds />} />
+          <Route path="/evento/:eventId" element={<EventDetail />} />
           <Route path="/compare" element={<Compare />} />
           <Route path="/arbitrage" element={<Arbitrage />} />
           <Route path="/bookmakers" element={<Bookmakers />} />
