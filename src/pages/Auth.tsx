@@ -27,7 +27,7 @@ const Auth = () => {
     // Check if user is already logged in
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        navigate("/live-odds");
+        navigate("/");
       }
     });
   }, [navigate]);
@@ -49,7 +49,7 @@ const Auth = () => {
         description: "Bem-vindo ao Odds Analyzer",
       });
 
-      navigate("/live-odds");
+      navigate("/");
     } catch (error: any) {
       toast({
         variant: "destructive",

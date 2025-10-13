@@ -116,7 +116,7 @@ const Index = () => {
                 key={event.id}
                 event={event}
                 hasArbitrage={getEventArbitrage(event) !== null}
-                onClick={() => navigate(`/evento/${event.id}`)}
+                onClick={() => navigate(`/compare?event=${event.id}`)}
               />
             ))}
           </div>

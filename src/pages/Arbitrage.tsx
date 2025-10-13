@@ -24,7 +24,7 @@ const Arbitrage = () => {
           title: "Acesso negado",
           description: "Você precisa fazer login para acessar esta página.",
         });
-        navigate("/login");
+        navigate("/auth");
         return;
       }
       setUser(session.user);
@@ -34,7 +34,7 @@ const Arbitrage = () => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) {
-        navigate("/login");
+        navigate("/auth");
       } else {
         setUser(session.user);
       }

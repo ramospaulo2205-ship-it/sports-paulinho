@@ -22,10 +22,8 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Auth />} />
-          <Route path="/login" element={<Auth />} />
+          <Route path="/" element={<Index />} />
           <Route path="/live-odds" element={<LiveOdds />} />
-          <Route path="/eventos" element={<LiveOdds />} />
           <Route path="/evento/:eventId" element={<EventDetail />} />
           <Route path="/compare" element={<Compare />} />
           <Route path="/arbitrage" element={<Arbitrage />} />
