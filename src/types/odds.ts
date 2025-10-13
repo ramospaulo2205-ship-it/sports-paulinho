@@ -12,6 +12,7 @@ export interface Odds {
   draw?: number;
   away: number;
   timestamp?: string;
+  url?: string;
   previous?: {
     home: number;
     draw?: number;

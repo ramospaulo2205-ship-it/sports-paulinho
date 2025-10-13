@@ -164,6 +164,7 @@ function transformBookmakerOdds(bookmakers: any[], previousEvent?: Event): any[]
       home: homeOdd,
       away: awayOdd,
       draw: drawOdd,
+      url: bookmaker.url,
       timestamp: new Date().toISOString(),
       previous: previousOdds ? {
         home: previousOdds.home,

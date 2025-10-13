@@ -171,20 +171,26 @@ const EventDetail = () => {
                   <Card key={idx} className="p-4 bg-muted/20 border-border hover:border-primary/50 transition-all">
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="font-semibold">{odd.bookmaker}</h3>
-                      <Button
-                        size="sm"
-                        className="bg-gradient-primary hover:opacity-90 text-primary-foreground border-0 gap-2"
-                        asChild
-                      >
-                        <a
-                          href={`https://${odd.bookmaker.toLowerCase().replace(/\s+/g, "")}.com.br`}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                      {odd.url ? (
+                        <Button
+                          size="sm"
+                          className="bg-gradient-primary hover:opacity-90 text-primary-foreground border-0 gap-2"
+                          asChild
                         >
-                          Apostar
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                      </Button>
+                          <a
+                            href={odd.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            Apostar
+                            <ExternalLink className="h-3 w-3" />
+                          </a>
+                        </Button>
+                      ) : (
+                        <Badge variant="outline" className="text-xs">
+                          Link indisponível
+                        </Badge>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-3 gap-4">
