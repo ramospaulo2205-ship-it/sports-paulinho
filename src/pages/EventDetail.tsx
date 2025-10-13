@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import OddVariation from "@/components/OddVariation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
+import { mockEvents } from "@/data/mockData";
 
 const EventDetail = () => {
   const { eventId } = useParams<{ eventId: string }>();
@@ -26,7 +27,11 @@ const EventDetail = () => {
   ]);
   const { isFavorite, toggleFavorite } = useFavorites();
 
-  const event = events.find((e) => e.id === eventId);
+  const eventFromApi = events.find((e) => e.id === eventId);
+  const eventFromMock = mockEvents.find((e) => e.id === eventId);
+  const event = eventFromApi || eventFromMock;
+
+  console.log("[EventDetail] Resolução de evento", { eventId, foundApi: !!eventFromApi, foundMock: !!eventFromMock });
 
   useEffect(() => {
     const checkAuth = async () => {

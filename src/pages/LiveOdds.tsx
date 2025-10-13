@@ -14,6 +14,8 @@ import { useOddsPolling } from "@/hooks/useOddsPolling";
 import { useFavorites } from "@/hooks/useFavorites";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { mockEvents } from "@/data/mockData";
+
 
 const SPORTS = {
   futebol: ['soccer_brazil_campeonato'],
@@ -37,6 +39,7 @@ const LiveOdds = () => {
   
   const { events, loading, error, lastUpdate, remainingRequests, refetch } = useOddsPolling(SPORTS[activeTab]);
   const { isFavorite, toggleFavorite } = useFavorites();
+
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -100,6 +103,47 @@ const LiveOdds = () => {
       return true;
     });
   }, [events, searchQuery, selectedLeagues, dateRange]);
+
+
+  const tabToMockSport: Record<keyof typeof SPORTS, string> = {
+    futebol: 'soccer',
+    basquete: 'basketball',
+    tenis: 'tennis',
+    esports: 'esports',
+    ufc: 'football',
+  };
+
+  const filteredMockEvents = useMemo(() => {
+    const targetSport = tabToMockSport[activeTab];
+    const list = mockEvents.filter((e) => !targetSport || e.sport === targetSport);
+    if (list.length === 0) return [] as typeof mockEvents;
+
+    return list.filter((event) => {
+      if (searchQuery) {
+        const normalizedQuery = normalizeText(searchQuery);
+        const normalizedHome = normalizeText(event.homeTeam);
+        const normalizedAway = normalizeText(event.awayTeam);
+        const normalizedLeague = normalizeText(event.league);
+        const matchesSearch =
+          normalizedHome.includes(normalizedQuery) ||
+          normalizedAway.includes(normalizedQuery) ||
+          normalizedLeague.includes(normalizedQuery);
+        if (!matchesSearch) return false;
+      }
+
+      if (selectedLeagues.length > 0 && !selectedLeagues.includes(event.league)) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [activeTab, searchQuery, selectedLeagues]);
+
+  useEffect(() => {
+    if (!loading && events.length === 0 && filteredMockEvents.length > 0) {
+      console.log('[LiveOdds] Usando fallback do mock:', filteredMockEvents.length, 'eventos');
+    }
+  }, [loading, events.length, filteredMockEvents.length]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -176,14 +220,26 @@ const LiveOdds = () => {
                     <Skeleton key={i} className="h-48 w-full" />
                   ))}
                 </div>
-              ) : filteredEvents.length === 0 ? (
-                <div className="text-center py-12">
-                  <p className="text-muted-foreground">
-                    {searchQuery || selectedLeagues.length > 0
-                      ? "Nenhum evento encontrado com os filtros aplicados"
-                      : "Nenhum evento disponível no momento"}
-                  </p>
-                </div>
+) : filteredEvents.length === 0 ? (
+                filteredMockEvents.length > 0 ? (
+                  filteredMockEvents.map((event) => (
+                    <OddsCard
+                      key={event.id}
+                      event={event}
+                      isFavorite={isFavorite(event.id)}
+                      onToggleFavorite={toggleFavorite}
+                      onClick={() => navigate(`/evento/${event.id}`)}
+                    />
+                  ))
+                ) : (
+                  <div className="text-center py-12">
+                    <p className="text-muted-foreground">
+                      {searchQuery || selectedLeagues.length > 0
+                        ? "Nenhum evento encontrado com os filtros aplicados"
+                        : "Nenhum evento disponível no momento"}
+                    </p>
+                  </div>
+                )
               ) : (
                 filteredEvents.map((event) => (
                   <OddsCard
