@@ -16,7 +16,7 @@ interface OddsCardProps {
 const OddsCard = ({ event, isFavorite = false, onToggleFavorite, onClick, hasArbitrage }: OddsCardProps) => {
   return (
     <Card 
-      className="p-4 bg-gradient-card border-border hover:shadow-lg transition-all animate-fade-in"
+      className="p-4 bg-gradient-card border-border hover:shadow-lg transition-all animate-fade-in cursor-pointer"
       onClick={onClick}
     >
       {hasArbitrage && (
