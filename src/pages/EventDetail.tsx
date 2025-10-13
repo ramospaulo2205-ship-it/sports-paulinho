@@ -33,6 +33,26 @@ const EventDetail = () => {
 
   console.log("[EventDetail] Resolução de evento", { eventId, foundApi: !!eventFromApi, foundMock: !!eventFromMock });
 
+  const getBookmakerUrl = (bookmakerName: string) => {
+    const overrides: Record<string, string> = {
+      'Bet365': 'https://www.bet365.bet.br/#/HO/',
+      'Pinnacle': 'https://www.pinnacle.com/pt/',
+      'Stake': 'https://stake.com/pt/sports',
+      '1xBet': 'https://1xbet.com/pt/',
+    };
+    if (overrides[bookmakerName]) return overrides[bookmakerName];
+    const known: Record<string, string> = {
+      'Betano': 'https://www.betano.bet.br/',
+      'Rivalo': 'https://www.rivalo.bet.br/',
+      'Superbet': 'https://www.superbet.bet.br/',
+      'Novibet': 'https://www.novibet.bet.br/',
+      'Pixbet': 'https://www.pixbet.bet.br/',
+      'Sportingbet': 'https://www.sportingbet.bet.br/',
+      'Betfair': 'https://www.betfair.bet.br/',
+    };
+    return known[bookmakerName] || "";
+  };
+
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -176,14 +196,14 @@ const EventDetail = () => {
                   <Card key={idx} className="p-4 bg-muted/20 border-border hover:border-primary/50 transition-all">
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="font-semibold">{odd.bookmaker}</h3>
-                      {odd.url ? (
+                      {(odd.url || getBookmakerUrl(odd.bookmaker)) ? (
                         <Button
                           size="sm"
                           className="bg-gradient-primary hover:opacity-90 text-primary-foreground border-0 gap-2"
                           asChild
                         >
                           <a
-                            href={odd.url}
+                            href={odd.url || getBookmakerUrl(odd.bookmaker)}
                             target="_blank"
                             rel="noopener noreferrer"
                           >

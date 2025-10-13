@@ -70,10 +70,16 @@ const Compare = () => {
   const bestDraw = selectedEvent.odds[0].draw ? getBestOddByOutcome('draw') : null;
 
   const getBookmakerUrl = (bookmakerName: string) => {
+    const overrides: Record<string, string> = {
+      'Bet365': 'https://www.bet365.bet.br/#/HO/',
+      'Pinnacle': 'https://www.pinnacle.com/pt/',
+      'Stake': 'https://stake.com/pt/sports',
+      '1xBet': 'https://1xbet.com/pt/',
+    };
+    if (overrides[bookmakerName]) return overrides[bookmakerName];
     const bookmaker = bookmakers.find(b => b.name === bookmakerName);
-    return bookmaker?.url || "#";
+    return bookmaker?.url || "";
   };
-
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -174,13 +180,13 @@ const Compare = () => {
                       </span>
                     </td>
                     <td className="text-center py-4 px-4">
-                      {odd.url ? (
+                      {(odd.url || getBookmakerUrl(odd.bookmaker)) ? (
                         <Button
                           size="sm"
                           className="bg-gradient-primary hover:opacity-90 text-primary-foreground border-0"
                           asChild
                         >
-                          <a href={odd.url} target="_blank" rel="noopener noreferrer">
+                          <a href={odd.url || getBookmakerUrl(odd.bookmaker)} target="_blank" rel="noopener noreferrer">
                             <ExternalLink className="h-4 w-4 mr-1" />
                             Apostar
                           </a>
