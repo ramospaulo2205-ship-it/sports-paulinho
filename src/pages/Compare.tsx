@@ -15,9 +15,15 @@ const Compare = () => {
   const [searchParams] = useSearchParams();
   const [user, setUser] = useState(null);
   const eventId = searchParams.get("event");
-  const [selectedEvent, setSelectedEvent] = useState(
-    eventId ? mockEvents.find(e => e.id === eventId) : mockEvents[0]
-  );
+  
+  // Redirect to new route format if accessed via old query param
+  useEffect(() => {
+    if (eventId) {
+      navigate(`/evento/${eventId}`, { replace: true });
+    }
+  }, [eventId, navigate]);
+  
+  const [selectedEvent, setSelectedEvent] = useState(mockEvents[0]);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -28,7 +34,7 @@ const Compare = () => {
           title: "Acesso negado",
           description: "Você precisa fazer login para acessar esta página.",
         });
-        navigate("/auth");
+        navigate("/login");
         return;
       }
       setUser(session.user);
@@ -38,7 +44,7 @@ const Compare = () => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) {
-        navigate("/auth");
+        navigate("/login");
       } else {
         setUser(session.user);
       }
@@ -192,7 +198,7 @@ const Compare = () => {
               <Card
                 key={event.id}
                 className="p-4 bg-gradient-card hover:bg-muted/20 cursor-pointer transition-all border-border hover:border-primary/50"
-                onClick={() => setSelectedEvent(event)}
+                onClick={() => navigate(`/evento/${event.id}`)}
               >
                 <p className="text-xs text-muted-foreground mb-1">{event.league}</p>
                 <p className="font-semibold text-sm">
