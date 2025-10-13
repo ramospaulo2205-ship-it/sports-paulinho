@@ -62,7 +62,11 @@ export const useOddsPolling = (sports: string[]) => {
                 minute: '2-digit' 
               }),
               commenceTime: apiEvent.commence_time,
-              odds: transformBookmakerOdds(apiEvent.bookmakers, data.events.find(e => e.id === apiEvent.id)),
+              odds: transformBookmakerOdds(
+                apiEvent.bookmakers,
+                { homeTeam: apiEvent.home_team, awayTeam: apiEvent.away_team },
+                data.events.find(e => e.id === apiEvent.id)
+              )
             };
             allEvents.push(event);
           });
@@ -144,33 +148,41 @@ function getSportDisplayName(sportKey: string): string {
   return sportMap[sportKey] || 'Outros';
 }
 
-function transformBookmakerOdds(bookmakers: any[], previousEvent?: Event): any[] {
+function transformBookmakerOdds(
+  bookmakers: any[],
+  teams: { homeTeam: string; awayTeam: string },
+  previousEvent?: Event
+): any[] {
   if (!bookmakers || bookmakers.length === 0) return [];
 
-  return bookmakers.map(bookmaker => {
-    const h2hMarket = bookmaker.markets.find((m: any) => m.key === 'h2h');
-    if (!h2hMarket) return null;
+  return bookmakers
+    .map((bookmaker) => {
+      const h2hMarket = bookmaker.markets.find((m: any) => m.key === 'h2h');
+      if (!h2hMarket) return null;
 
-    const outcomes = h2hMarket.outcomes;
-    const homeOdd = outcomes.find((o: any) => o.name === bookmaker.home_team)?.price || 0;
-    const awayOdd = outcomes.find((o: any) => o.name === bookmaker.away_team)?.price || 0;
-    const drawOdd = outcomes.find((o: any) => o.name === 'Draw')?.price;
+      const outcomes = h2hMarket.outcomes;
+      const homeOdd = outcomes.find((o: any) => o.name === teams.homeTeam)?.price ?? 0;
+      const awayOdd = outcomes.find((o: any) => o.name === teams.awayTeam)?.price ?? 0;
+      const drawOdd = outcomes.find((o: any) => o.name === 'Draw')?.price;
 
-    // Find previous odds for comparison
-    const previousOdds = previousEvent?.odds.find(o => o.bookmaker === bookmaker.title);
+      // Find previous odds for comparison
+      const previousOdds = previousEvent?.odds.find((o) => o.bookmaker === bookmaker.title);
 
-    return {
-      bookmaker: bookmaker.title,
-      home: homeOdd,
-      away: awayOdd,
-      draw: drawOdd,
-      url: bookmaker.url,
-      timestamp: new Date().toISOString(),
-      previous: previousOdds ? {
-        home: previousOdds.home,
-        away: previousOdds.away,
-        draw: previousOdds.draw,
-      } : undefined,
-    };
-  }).filter(Boolean);
+      return {
+        bookmaker: bookmaker.title,
+        home: homeOdd,
+        away: awayOdd,
+        draw: drawOdd,
+        url: bookmaker.url, // may be undefined; we avoid linking to generic homepage
+        timestamp: new Date().toISOString(),
+        previous: previousOdds
+          ? {
+              home: previousOdds.home,
+              away: previousOdds.away,
+              draw: previousOdds.draw,
+            }
+          : undefined,
+      };
+    })
+    .filter(Boolean);
 }
