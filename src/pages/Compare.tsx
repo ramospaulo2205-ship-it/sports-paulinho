@@ -174,14 +174,20 @@ const Compare = () => {
                       </span>
                     </td>
                     <td className="text-center py-4 px-4">
-                      <Button
-                        size="sm"
-                        className="bg-gradient-primary hover:opacity-90 text-primary-foreground border-0"
-                        onClick={() => window.open(getBookmakerUrl(odd.bookmaker), '_blank')}
-                      >
-                        <ExternalLink className="h-4 w-4 mr-1" />
-                        Apostar
-                      </Button>
+                      {odd.url ? (
+                        <Button
+                          size="sm"
+                          className="bg-gradient-primary hover:opacity-90 text-primary-foreground border-0"
+                          asChild
+                        >
+                          <a href={odd.url} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="h-4 w-4 mr-1" />
+                            Apostar
+                          </a>
+                        </Button>
+                      ) : (
+                        <Badge variant="outline" className="text-xs">Link indisponível</Badge>
+                      )}
                     </td>
                   </tr>
                 ))}
