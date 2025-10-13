@@ -72,7 +72,7 @@ const Navbar = () => {
                   </Button>
                 </Link>
               ) : (
-                <Link to="/auth">
+                <Link to="/login">
                   <Button
                     size="sm"
                     className="bg-gradient-primary hover:opacity-90 text-primary-foreground border-0 gap-2"

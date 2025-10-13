@@ -26,7 +26,7 @@ const Bookmakers = () => {
           title: "Acesso negado",
           description: "Você precisa fazer login para acessar esta página.",
         });
-        navigate("/auth");
+        navigate("/login");
         return;
       }
       setUser(session.user);
@@ -36,7 +36,7 @@ const Bookmakers = () => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) {
-        navigate("/auth");
+        navigate("/login");
       } else {
         setUser(session.user);
       }
