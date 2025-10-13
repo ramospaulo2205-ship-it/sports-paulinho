@@ -1,5 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/Navbar";
 import OddsCard from "@/components/OddsCard";
 import SearchBar, { normalizeText } from "@/components/SearchBar";
@@ -23,6 +25,8 @@ const SPORTS = {
 
 const LiveOdds = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState<keyof typeof SPORTS>('futebol');
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLeagues, setSelectedLeagues] = useState<string[]>([]);
@@ -33,6 +37,34 @@ const LiveOdds = () => {
   
   const { events, loading, error, lastUpdate, remainingRequests, refetch } = useOddsPolling(SPORTS[activeTab]);
   const { isFavorite, toggleFavorite } = useFavorites();
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({
+          variant: "destructive",
+          title: "Acesso negado",
+          description: "Você precisa fazer login para acessar esta página.",
+        });
+        navigate("/auth");
+        return;
+      }
+      setUser(session.user);
+    };
+
+    checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        navigate("/auth");
+      } else {
+        setUser(session.user);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate, toast]);
 
   // Filter events based on search, leagues, and date range
   const filteredEvents = useMemo(() => {

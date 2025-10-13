@@ -1,5 +1,7 @@
-import { useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/Navbar";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,11 +10,42 @@ import { mockEvents, bookmakers } from "@/data/mockData";
 import { Calendar, Clock, TrendingUp, ExternalLink } from "lucide-react";
 
 const Compare = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const [searchParams] = useSearchParams();
+  const [user, setUser] = useState(null);
   const eventId = searchParams.get("event");
   const [selectedEvent, setSelectedEvent] = useState(
     eventId ? mockEvents.find(e => e.id === eventId) : mockEvents[0]
   );
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({
+          variant: "destructive",
+          title: "Acesso negado",
+          description: "Você precisa fazer login para acessar esta página.",
+        });
+        navigate("/auth");
+        return;
+      }
+      setUser(session.user);
+    };
+
+    checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        navigate("/auth");
+      } else {
+        setUser(session.user);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate, toast]);
 
   if (!selectedEvent) return null;
 

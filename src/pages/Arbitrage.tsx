@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import ArbitrageCalculator from "@/components/ArbitrageCalculator";
 import { Card } from "@/components/ui/card";
@@ -10,20 +11,37 @@ import { useToast } from "@/hooks/use-toast";
 import { TrendingUp, Calculator, Save, ExternalLink } from "lucide-react";
 
 const Arbitrage = () => {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-    });
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({
+          variant: "destructive",
+          title: "Acesso negado",
+          description: "Você precisa fazer login para acessar esta página.",
+        });
+        navigate("/auth");
+        return;
+      }
+      setUser(session.user);
+    };
+
+    checkAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      if (!session) {
+        navigate("/auth");
+      } else {
+        setUser(session.user);
+      }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [navigate, toast]);
 
   const saveArbitrage = async (opportunity: any) => {
     if (!user) {
