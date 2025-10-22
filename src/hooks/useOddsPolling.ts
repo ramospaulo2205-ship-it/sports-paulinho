@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Event } from '@/types/odds';
 import { useToast } from '@/hooks/use-toast';
 
-const POLLING_INTERVAL = 30000; // 30 seconds
+const POLLING_INTERVAL = 15000; // 15 seconds - real-time updates
 const MAX_RETRIES = 3;
 const INITIAL_BACKOFF = 1000;
 

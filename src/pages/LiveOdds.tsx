@@ -153,9 +153,17 @@ const LiveOdds = () => {
         <div className="mb-6 animate-fade-in">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-3xl font-bold mb-2">Odds ao Vivo</h1>
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-3xl font-bold">Odds ao Vivo</h1>
+                {lastUpdate && Date.now() - lastUpdate.getTime() < 30000 && (
+                  <span className="px-3 py-1 bg-green-500/20 text-green-500 text-xs font-semibold rounded-full border border-green-500/30 animate-pulse flex items-center gap-1">
+                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                    AO VIVO
+                  </span>
+                )}
+              </div>
               <p className="text-muted-foreground">
-                Atualizado a cada 30 segundos
+                Atualizado a cada 15 segundos
                 {lastUpdate && (
                   <span className="ml-2">
                     • Última atualização: {lastUpdate.toLocaleTimeString('pt-BR')}

@@ -70,7 +70,11 @@ const OddsCard = ({ event, isFavorite = false, onToggleFavorite, onClick, hasArb
               <p className="text-xs text-muted-foreground mb-1">{odd.bookmaker}</p>
               <div className="flex items-center justify-center gap-1">
                 <p className="font-bold text-sm">{odd.home.toFixed(2)}</p>
-                <OddVariation current={odd.home} previous={odd.previous?.home} />
+                <OddVariation 
+                  current={odd.home} 
+                  previous={odd.previous?.home}
+                  timestamp={odd.timestamp}
+                />
               </div>
             </div>
             
@@ -79,7 +83,11 @@ const OddsCard = ({ event, isFavorite = false, onToggleFavorite, onClick, hasArb
                 <p className="text-xs text-muted-foreground mb-1">Empate</p>
                 <div className="flex items-center justify-center gap-1">
                   <p className="font-bold text-sm">{odd.draw.toFixed(2)}</p>
-                  <OddVariation current={odd.draw} previous={odd.previous?.draw} />
+                  <OddVariation 
+                    current={odd.draw} 
+                    previous={odd.previous?.draw}
+                    timestamp={odd.timestamp}
+                  />
                 </div>
               </div>
             )}
@@ -88,7 +96,11 @@ const OddsCard = ({ event, isFavorite = false, onToggleFavorite, onClick, hasArb
               <p className="text-xs text-muted-foreground mb-1">{event.awayTeam}</p>
               <div className="flex items-center justify-center gap-1">
                 <p className="font-bold text-sm">{odd.away.toFixed(2)}</p>
-                <OddVariation current={odd.away} previous={odd.previous?.away} />
+                <OddVariation 
+                  current={odd.away} 
+                  previous={odd.previous?.away}
+                  timestamp={odd.timestamp}
+                />
               </div>
             </div>
           </div>

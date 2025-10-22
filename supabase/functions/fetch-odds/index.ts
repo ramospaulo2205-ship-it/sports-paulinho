@@ -25,7 +25,8 @@ serve(async (req) => {
 
     // Fetch odds for all requested sports in parallel
     const oddsPromises = sports.map(async (sport) => {
-      const url = `${ODDS_API_BASE}/sports/${sport}/odds/?apiKey=${ODDS_API_KEY}&regions=br,us,uk,eu&markets=${markets.join(',')}&oddsFormat=decimal`;
+      // Valid regions: us, uk, eu, au (NOT br)
+      const url = `${ODDS_API_BASE}/sports/${sport}/odds/?apiKey=${ODDS_API_KEY}&regions=us,uk,eu,au&markets=${markets.join(',')}&oddsFormat=decimal`;
       
       console.log(`Fetching from: ${url}`);
       
