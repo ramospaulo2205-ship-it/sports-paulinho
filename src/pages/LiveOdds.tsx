@@ -71,7 +71,15 @@ const LiveOdds = () => {
 
   // Filter events based on search, leagues, and date range
   const filteredEvents = useMemo(() => {
+    const now = new Date();
+    
     return events.filter((event) => {
+      // Filtrar apenas eventos futuros
+      if (event.commenceTime) {
+        const eventDate = new Date(event.commenceTime);
+        if (eventDate < now) return false;
+      }
+
       // Search filter
       if (searchQuery) {
         const normalizedQuery = normalizeText(searchQuery);
@@ -118,7 +126,13 @@ const LiveOdds = () => {
     const list = mockEvents.filter((e) => !targetSport || e.sport === targetSport);
     if (list.length === 0) return [] as typeof mockEvents;
 
+    const now = new Date();
+
     return list.filter((event) => {
+      // Filtrar apenas eventos futuros
+      const eventDateTime = new Date(`${event.date}T${event.time}`);
+      if (eventDateTime < now) return false;
+
       if (searchQuery) {
         const normalizedQuery = normalizeText(searchQuery);
         const normalizedHome = normalizeText(event.homeTeam);
