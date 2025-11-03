@@ -24,17 +24,20 @@ serve(async (req) => {
     console.log(`Fetching odds for sports: ${sports.join(', ')}`);
 
     // Fetch odds for all requested sports in parallel
+    const fetchTimestamp = new Date().toISOString();
+    console.log(`[${fetchTimestamp}] Starting odds fetch for sports:`, sports.join(', '));
+    
     const oddsPromises = sports.map(async (sport) => {
       // Valid regions: us, uk, eu, au (NOT br)
       const url = `${ODDS_API_BASE}/sports/${sport}/odds/?apiKey=${ODDS_API_KEY}&regions=us,uk,eu,au&markets=${markets.join(',')}&oddsFormat=decimal`;
       
-      console.log(`Fetching from: ${url}`);
+      console.log(`[${sport}] Fetching from API...`);
       
       const response = await fetch(url);
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`API Error for ${sport}:`, response.status, errorText);
+        console.error(`[${sport}] API Error:`, response.status, errorText);
         
         if (response.status === 429) {
           throw new Error('Rate limit exceeded. Please try again later.');
@@ -44,18 +47,31 @@ serve(async (req) => {
       }
 
       const data = await response.json();
-      console.log(`Received ${data.length} events for ${sport}`);
+      const apiTimestamp = response.headers.get('date') || new Date().toISOString();
+      console.log(`[${sport}] Received ${data.length} events at ${apiTimestamp}`);
+      
+      // Log sample event data for debugging
+      if (data.length > 0) {
+        const sampleEvent = data[0];
+        console.log(`[${sport}] Sample event:`, {
+          id: sampleEvent.id,
+          commence_time: sampleEvent.commence_time,
+          bookmakers_count: sampleEvent.bookmakers?.length || 0
+        });
+      }
       
       return { sport, events: data };
     });
 
     const results = await Promise.all(oddsPromises);
+    const responseTimestamp = new Date().toISOString();
     
     // Check rate limit from headers
     const remainingRequests = results[0]?.events?.length > 0 ? 
       req.headers.get('x-requests-remaining') : null;
     
-    console.log(`Requests remaining: ${remainingRequests}`);
+    const totalEvents = results.reduce((sum, r) => sum + (r.events?.length || 0), 0);
+    console.log(`[${responseTimestamp}] Returning ${totalEvents} total events. Requests remaining: ${remainingRequests}`);
 
     return new Response(
       JSON.stringify({ 

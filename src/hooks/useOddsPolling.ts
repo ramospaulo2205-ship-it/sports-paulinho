@@ -28,6 +28,7 @@ export const useOddsPolling = (sports: string[]) => {
   const retryCount = useRef(0);
   const backoffDelay = useRef(INITIAL_BACKOFF);
   const pollingTimer = useRef<NodeJS.Timeout | null>(null);
+  const previousEventsRef = useRef<Event[]>([]);
 
   const fetchOdds = useCallback(async () => {
     try {
@@ -46,9 +47,13 @@ export const useOddsPolling = (sports: string[]) => {
       // Transform API data to our Event format
       const allEvents: Event[] = [];
       
+      console.log('[Odds Update] Processing new data, previous events count:', previousEventsRef.current.length);
+      
       responseData.data.forEach((sportData: any) => {
         if (sportData.events && Array.isArray(sportData.events)) {
           sportData.events.forEach((apiEvent: any) => {
+            const previousEvent = previousEventsRef.current.find(e => e.id === apiEvent.id);
+            
             const event: Event = {
               id: apiEvent.id,
               sport: getSportDisplayName(sportData.sport),
@@ -65,7 +70,7 @@ export const useOddsPolling = (sports: string[]) => {
               odds: transformBookmakerOdds(
                 apiEvent.bookmakers,
                 { homeTeam: apiEvent.home_team, awayTeam: apiEvent.away_team },
-                data.events.find(e => e.id === apiEvent.id)
+                previousEvent
               )
             };
             allEvents.push(event);
@@ -77,6 +82,11 @@ export const useOddsPolling = (sports: string[]) => {
       allEvents.sort((a, b) => 
         new Date(a.commenceTime || 0).getTime() - new Date(b.commenceTime || 0).getTime()
       );
+
+      console.log('[Odds Update] New events count:', allEvents.length, 'at', new Date().toISOString());
+
+      // Update ref with new events for next comparison
+      previousEventsRef.current = allEvents;
 
       setData({
         events: allEvents,
@@ -91,7 +101,7 @@ export const useOddsPolling = (sports: string[]) => {
       backoffDelay.current = INITIAL_BACKOFF;
 
     } catch (error: any) {
-      console.error('Error fetching odds:', error);
+      console.error('[Odds Error]', error.message, 'at', new Date().toISOString());
       
       if (error.message.includes('Rate limit')) {
         toast({
@@ -116,7 +126,7 @@ export const useOddsPolling = (sports: string[]) => {
         }));
       }
     }
-  }, [sports, toast, data.events]);
+  }, [sports, toast]);
 
   useEffect(() => {
     fetchOdds();
@@ -168,12 +178,12 @@ function transformBookmakerOdds(
       // Find previous odds for comparison
       const previousOdds = previousEvent?.odds.find((o) => o.bookmaker === bookmaker.title);
 
-      return {
+      const result = {
         bookmaker: bookmaker.title,
         home: homeOdd,
         away: awayOdd,
         draw: drawOdd,
-        url: bookmaker.url, // may be undefined; we avoid linking to generic homepage
+        url: bookmaker.url,
         timestamp: new Date().toISOString(),
         previous: previousOdds
           ? {
@@ -183,6 +193,13 @@ function transformBookmakerOdds(
             }
           : undefined,
       };
+
+      // Debug log for odds comparison
+      if (previousOdds) {
+        console.log(`[Odds Compare] ${bookmaker.title}: home ${previousOdds.home} → ${homeOdd}, away ${previousOdds.away} → ${awayOdd}`);
+      }
+
+      return result;
     })
     .filter(Boolean);
 }
