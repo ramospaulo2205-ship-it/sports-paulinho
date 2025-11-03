@@ -12,15 +12,22 @@ const Index = () => {
   const [selectedSport, setSelectedSport] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredEvents = mockEvents.filter((event) => {
-    const matchesSport = selectedSport === "all" || event.sport === selectedSport;
-    const matchesSearch = 
-      event.homeTeam.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      event.awayTeam.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      event.league.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    return matchesSport && matchesSearch;
-  });
+  const now = new Date();
+  const filteredEvents = mockEvents
+    .filter((event) => {
+      // Filtrar apenas eventos futuros
+      const eventDate = new Date(`${event.date}T${event.time}`);
+      if (isNaN(eventDate.getTime()) || eventDate < now) return false;
+
+      const matchesSport = selectedSport === "all" || event.sport === selectedSport;
+      const matchesSearch = 
+        event.homeTeam.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        event.awayTeam.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        event.league.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      return matchesSport && matchesSearch;
+    })
+    .sort((a, b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime());
 
   const getEventArbitrage = (event: typeof mockEvents[0]) => {
     const allOdds = event.odds.map(o => ({
