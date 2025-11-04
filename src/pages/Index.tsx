@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import OddsCard from "@/components/OddsCard";
@@ -6,28 +6,44 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { mockEvents, sports, calculateArbitrage } from "@/data/mockData";
 import { Search, TrendingUp } from "lucide-react";
+import { useRealTimeOdds } from "@/hooks/useRealTimeOdds";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const Index = () => {
   const navigate = useNavigate();
   const [selectedSport, setSelectedSport] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  
+  const { events: realEvents, loading } = useRealTimeOdds();
 
   const now = new Date();
-  const filteredEvents = mockEvents
-    .filter((event) => {
-      // Filtrar apenas eventos futuros
-      const eventDate = new Date(`${event.date}T${event.time}`);
-      if (isNaN(eventDate.getTime()) || eventDate < now) return false;
+  
+  // Usar eventos reais se disponíveis, senão usar mock
+  const sourceEvents = realEvents.length > 0 ? realEvents : mockEvents;
+  
+  const filteredEvents = useMemo(() => {
+    return sourceEvents
+      .filter((event) => {
+        // Filtrar apenas eventos futuros
+        const eventDate = event.commenceTime 
+          ? new Date(event.commenceTime)
+          : new Date(`${event.date}T${event.time}`);
+        if (isNaN(eventDate.getTime()) || eventDate < now) return false;
 
-      const matchesSport = selectedSport === "all" || event.sport === selectedSport;
-      const matchesSearch = 
-        event.homeTeam.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        event.awayTeam.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        event.league.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      return matchesSport && matchesSearch;
-    })
-    .sort((a, b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime());
+        const matchesSport = selectedSport === "all" || event.sport === selectedSport;
+        const matchesSearch = 
+          event.homeTeam.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          event.awayTeam.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          event.league.toLowerCase().includes(searchQuery.toLowerCase());
+        
+        return matchesSport && matchesSearch;
+      })
+      .sort((a, b) => {
+        const dateA = a.commenceTime ? new Date(a.commenceTime) : new Date(`${a.date}T${a.time}`);
+        const dateB = b.commenceTime ? new Date(b.commenceTime) : new Date(`${b.date}T${b.time}`);
+        return dateA.getTime() - dateB.getTime();
+      });
+  }, [sourceEvents, selectedSport, searchQuery, now]);
 
   const getEventArbitrage = (event: typeof mockEvents[0]) => {
     const allOdds = event.odds.map(o => ({
@@ -117,16 +133,24 @@ const Index = () => {
           </div>
 
           {/* Events Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredEvents.map((event) => (
-              <OddsCard
-                key={event.id}
-                event={event}
-                hasArbitrage={getEventArbitrage(event) !== null}
-                onClick={() => navigate(`/evento/${event.id}`)}
-              />
-            ))}
-          </div>
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(6)].map((_, i) => (
+                <Skeleton key={i} className="h-64 w-full" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredEvents.map((event) => (
+                <OddsCard
+                  key={event.id}
+                  event={event}
+                  hasArbitrage={getEventArbitrage(event) !== null}
+                  onClick={() => navigate(`/evento/${event.id}`)}
+                />
+              ))}
+            </div>
+          )}
 
           {filteredEvents.length === 0 && (
             <div className="text-center py-12">
@@ -148,7 +172,7 @@ const Index = () => {
             </div>
             <div className="text-center animate-fade-in" style={{ animationDelay: "0.1s" }}>
               <div className="text-4xl font-bold bg-gradient-arbitrage bg-clip-text text-transparent mb-2">
-                {mockEvents.length}+
+                {realEvents.length > 0 ? realEvents.length : mockEvents.length}+
               </div>
               <p className="text-muted-foreground">Eventos Disponíveis</p>
             </div>

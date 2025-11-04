@@ -1,1 +1,7 @@
 project_id = "utxylkasnnamxdgbatau"
+
+[functions.fetch-odds]
+verify_jwt = false
+
+[functions.scrape-bookmakers]
+verify_jwt = false

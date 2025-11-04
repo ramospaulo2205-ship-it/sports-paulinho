@@ -7,10 +7,9 @@ import OddsCard from "@/components/OddsCard";
 import SearchBar, { normalizeText } from "@/components/SearchBar";
 import LeagueFilter from "@/components/LeagueFilter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, AlertCircle } from "lucide-react";
-import { useOddsPolling } from "@/hooks/useOddsPolling";
+import { useRealTimeOdds } from "@/hooks/useRealTimeOdds";
 import { useFavorites } from "@/hooks/useFavorites";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -37,7 +36,7 @@ const LiveOdds = () => {
     end: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
   });
   
-  const { events, loading, error, lastUpdate, remainingRequests, refetch } = useOddsPolling(SPORTS[activeTab]);
+  const { events, loading, error, lastUpdate, refetch } = useRealTimeOdds(activeTab === 'futebol' ? 'Futebol' : undefined);
   const { isFavorite, toggleFavorite } = useFavorites();
 
 
@@ -187,11 +186,6 @@ const LiveOdds = () => {
             </div>
             
             <div className="flex items-center gap-2">
-              {remainingRequests !== null && (
-                <Badge variant="outline">
-                  {remainingRequests} requisições restantes
-                </Badge>
-              )}
               <Button
                 variant="outline"
                 size="icon"
