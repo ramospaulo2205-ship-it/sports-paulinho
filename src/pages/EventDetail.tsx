@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Clock, Star, ExternalLink, Share2 } from "lucide-react";
-import { useOddsPolling } from "@/hooks/useOddsPolling";
+import { useEventDetails } from "@/hooks/useEventDetails";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useToast } from "@/hooks/use-toast";
 import OddVariation from "@/components/OddVariation";
@@ -18,20 +18,13 @@ const EventDetail = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [user, setUser] = useState(null);
-  const { events, loading } = useOddsPolling([
-    'soccer_brazil_campeonato',
-    'basketball_nba',
-    'tennis_atp_singles',
-    'esports_lol_worlds',
-    'mma_mixed_martial_arts',
-  ]);
+  const { event: dbEvent, loading } = useEventDetails(eventId);
   const { isFavorite, toggleFavorite } = useFavorites();
 
-  const eventFromApi = events.find((e) => e.id === eventId);
   const eventFromMock = mockEvents.find((e) => e.id === eventId);
-  const event = eventFromApi || eventFromMock;
+  const event = dbEvent || eventFromMock;
 
-  console.log("[EventDetail] Resolução de evento", { eventId, foundApi: !!eventFromApi, foundMock: !!eventFromMock });
+  console.log("[EventDetail] Resolução de evento", { eventId, foundDb: !!dbEvent, foundMock: !!eventFromMock });
 
   const getBookmakerUrl = (bookmakerName: string) => {
     const overrides: Record<string, string> = {
