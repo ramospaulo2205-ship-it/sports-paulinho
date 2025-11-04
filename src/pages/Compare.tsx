@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { mockEvents, bookmakers } from "@/data/mockData";
 import { Calendar, Clock, TrendingUp, ExternalLink } from "lucide-react";
+import { useRealTimeOdds } from "@/hooks/useRealTimeOdds";
 
 const Compare = () => {
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ const Compare = () => {
   const [searchParams] = useSearchParams();
   const [user, setUser] = useState(null);
   const eventId = searchParams.get("event");
+  const { events, loading } = useRealTimeOdds();
   
   // Redirect to new route format if accessed via old query param
   useEffect(() => {
@@ -23,7 +25,14 @@ const Compare = () => {
     }
   }, [eventId, navigate]);
   
-  const [selectedEvent, setSelectedEvent] = useState(mockEvents[0]);
+  const allEvents = events.length > 0 ? events : mockEvents;
+  const [selectedEvent, setSelectedEvent] = useState(allEvents[0]);
+  
+  useEffect(() => {
+    if (allEvents.length > 0 && !selectedEvent) {
+      setSelectedEvent(allEvents[0]);
+    }
+  }, [allEvents, selectedEvent]);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -206,7 +215,7 @@ const Compare = () => {
         <div className="mt-8">
           <h3 className="text-lg font-semibold mb-4">Outros Eventos</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {mockEvents.filter(e => e.id !== selectedEvent.id).slice(0, 3).map((event) => (
+            {allEvents.filter(e => e.id !== selectedEvent.id).slice(0, 3).map((event) => (
               <Card
                 key={event.id}
                 className="p-4 bg-gradient-card hover:bg-muted/20 cursor-pointer transition-all border-border hover:border-primary/50"
