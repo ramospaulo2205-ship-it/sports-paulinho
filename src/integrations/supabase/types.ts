@@ -44,6 +44,45 @@ export type Database = {
         }
         Relationships: []
       }
+      events: {
+        Row: {
+          away_team: string
+          commence_time: string
+          created_at: string | null
+          event_key: string
+          home_team: string
+          id: string
+          league: string
+          sport: string
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          away_team: string
+          commence_time: string
+          created_at?: string | null
+          event_key: string
+          home_team: string
+          id?: string
+          league: string
+          sport: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          away_team?: string
+          commence_time?: string
+          created_at?: string | null
+          event_key?: string
+          home_team?: string
+          id?: string
+          league?: string
+          sport?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       favorites: {
         Row: {
           created_at: string
@@ -64,6 +103,50 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      odds: {
+        Row: {
+          away_odd: number
+          bookmaker: string
+          bookmaker_url: string | null
+          draw_odd: number | null
+          event_id: string | null
+          home_odd: number
+          id: string
+          market_type: string | null
+          scraped_at: string | null
+        }
+        Insert: {
+          away_odd: number
+          bookmaker: string
+          bookmaker_url?: string | null
+          draw_odd?: number | null
+          event_id?: string | null
+          home_odd: number
+          id?: string
+          market_type?: string | null
+          scraped_at?: string | null
+        }
+        Update: {
+          away_odd?: number
+          bookmaker?: string
+          bookmaker_url?: string | null
+          draw_odd?: number | null
+          event_id?: string | null
+          home_odd?: number
+          id?: string
+          market_type?: string | null
+          scraped_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "odds_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -88,7 +171,15 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      scraper_health: {
+        Row: {
+          bookmaker: string | null
+          last_scrape: string | null
+          seconds_since_last_scrape: number | null
+          total_odds: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never
