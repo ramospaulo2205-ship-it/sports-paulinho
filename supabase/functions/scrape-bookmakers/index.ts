@@ -6,125 +6,127 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface ScrapedEvent {
-  eventKey: string;
-  sport: string;
-  league: string;
-  homeTeam: string;
-  awayTeam: string;
-  commenceTime: string;
-  odds: Array<{
-    bookmaker: string;
-    home: number;
-    draw?: number;
-    away: number;
-    url?: string;
+const ODDS_API_KEY = Deno.env.get('ODDS_API_KEY');
+const ODDS_API_BASE = 'https://api.the-odds-api.com/v4';
+
+// Esportes para buscar da API (com foco em eventos brasileiros e internacionais populares)
+const SPORTS_TO_FETCH = [
+  'soccer_brazil_campeonato',      // Brasileirão
+  'soccer_uefa_champs_league',     // Champions League
+  'soccer_uefa_europa_league',     // Europa League
+  'soccer_epl',                    // Premier League
+  'soccer_spain_la_liga',          // La Liga
+  'soccer_italy_serie_a',          // Serie A
+  'soccer_germany_bundesliga',     // Bundesliga
+  'soccer_france_ligue_one',       // Ligue 1
+  'basketball_nba',                // NBA
+  'basketball_euroleague',         // EuroLeague
+  'americanfootball_nfl',          // NFL
+  'icehockey_nhl',                 // NHL
+  'tennis_atp_aus_open_singles',   // Australian Open
+  'mma_mixed_martial_arts',        // UFC/MMA
+];
+
+interface OddsAPIEvent {
+  id: string;
+  sport_key: string;
+  sport_title: string;
+  commence_time: string;
+  home_team: string;
+  away_team: string;
+  bookmakers: Array<{
+    key: string;
+    title: string;
+    markets: Array<{
+      key: string;
+      outcomes: Array<{
+        name: string;
+        price: number;
+      }>;
+    }>;
   }>;
 }
 
-// Scrapers simulados - Em produção, usar Cheerio/Puppeteer
-async function scrapeBet365(): Promise<ScrapedEvent[]> {
-  console.log('[Bet365] Starting scrape...');
-  
-  // Simular dados reais (substituir por scraping real)
-  return [
-    {
-      eventKey: 'bet365_soccer_flamengo_palmeiras',
-      sport: 'Futebol',
-      league: 'Brasileirão Série A',
-      homeTeam: 'Flamengo',
-      awayTeam: 'Palmeiras',
-      commenceTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-      odds: [{
-        bookmaker: 'Bet365',
-        home: 2.10,
-        draw: 3.20,
-        away: 3.50,
-        url: 'https://www.bet365.com.br/'
-      }]
-    },
-    {
-      eventKey: 'bet365_soccer_corinthians_spfc',
-      sport: 'Futebol',
-      league: 'Brasileirão Série A',
-      homeTeam: 'Corinthians',
-      awayTeam: 'São Paulo',
-      commenceTime: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
-      odds: [{
-        bookmaker: 'Bet365',
-        home: 2.35,
-        draw: 3.10,
-        away: 3.00,
-        url: 'https://www.bet365.com.br/'
-      }]
+async function fetchOddsFromAPI(sport: string): Promise<OddsAPIEvent[]> {
+  try {
+    const url = `${ODDS_API_BASE}/sports/${sport}/odds/?apiKey=${ODDS_API_KEY}&regions=us,uk,eu,au&markets=h2h&oddsFormat=decimal&dateFormat=iso`;
+    
+    console.log(`[${sport}] Fetching odds from The Odds API...`);
+    
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      if (response.status === 429) {
+        console.error(`[${sport}] Rate limit exceeded`);
+        return [];
+      }
+      console.error(`[${sport}] API error: ${response.status}`);
+      return [];
     }
-  ];
+
+    const data = await response.json();
+    console.log(`[${sport}] Fetched ${data.length} events`);
+    
+    return data;
+  } catch (error: any) {
+    console.error(`[${sport}] Error fetching odds:`, error.message);
+    return [];
+  }
 }
 
-async function scrapeBetano(): Promise<ScrapedEvent[]> {
-  console.log('[Betano] Starting scrape...');
+function mapSportName(sportKey: string): string {
+  const sportMap: Record<string, string> = {
+    'soccer_brazil_campeonato': 'Futebol',
+    'soccer_uefa_champs_league': 'Futebol',
+    'soccer_uefa_europa_league': 'Futebol',
+    'soccer_epl': 'Futebol',
+    'soccer_spain_la_liga': 'Futebol',
+    'soccer_italy_serie_a': 'Futebol',
+    'soccer_germany_bundesliga': 'Futebol',
+    'soccer_france_ligue_one': 'Futebol',
+    'basketball_nba': 'Basquete',
+    'basketball_euroleague': 'Basquete',
+    'americanfootball_nfl': 'Futebol Americano',
+    'icehockey_nhl': 'Hockey',
+    'tennis_atp_aus_open_singles': 'Tênis',
+    'mma_mixed_martial_arts': 'MMA/UFC',
+  };
   
-  return [
-    {
-      eventKey: 'betano_soccer_flamengo_palmeiras',
-      sport: 'Futebol',
-      league: 'Brasileirão Série A',
-      homeTeam: 'Flamengo',
-      awayTeam: 'Palmeiras',
-      commenceTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-      odds: [{
-        bookmaker: 'Betano',
-        home: 2.15,
-        draw: 3.15,
-        away: 3.40,
-        url: 'https://www.betano.com.br/'
-      }]
-    }
-  ];
+  return sportMap[sportKey] || 'Outros';
 }
 
-async function scrapeRivalo(): Promise<ScrapedEvent[]> {
-  console.log('[Rivalo] Starting scrape...');
-  
-  return [
-    {
-      eventKey: 'rivalo_soccer_flamengo_palmeiras',
-      sport: 'Futebol',
-      league: 'Brasileirão Série A',
-      homeTeam: 'Flamengo',
-      awayTeam: 'Palmeiras',
-      commenceTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-      odds: [{
-        bookmaker: 'Rivalo',
-        home: 2.08,
-        draw: 3.25,
-        away: 3.55,
-        url: 'https://www.rivalo.com.br/'
-      }]
-    }
-  ];
+function mapLeagueName(sportTitle: string): string {
+  return sportTitle;
 }
 
-async function scrapePixbet(): Promise<ScrapedEvent[]> {
-  console.log('[Pixbet] Starting scrape...');
+function mapBookmakerName(bookmakerKey: string): string {
+  const bookmakerMap: Record<string, string> = {
+    'bet365': 'Bet365',
+    'betano': 'Betano',
+    'betfair': 'Betfair',
+    'williamhill': 'William Hill',
+    'unibet': 'Unibet',
+    'pinnacle': 'Pinnacle',
+    'betsson': 'Betsson',
+    'bwin': 'Bwin',
+    '888sport': '888Sport',
+    'marathonbet': 'Marathon Bet',
+  };
   
-  return [
-    {
-      eventKey: 'pixbet_soccer_corinthians_spfc',
-      sport: 'Futebol',
-      league: 'Brasileirão Série A',
-      homeTeam: 'Corinthians',
-      awayTeam: 'São Paulo',
-      commenceTime: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
-      odds: [{
-        bookmaker: 'Pixbet',
-        home: 2.40,
-        draw: 3.05,
-        away: 2.95,
-        url: 'https://www.pixbet.com.br/'
-      }]
-    }
-  ];
+  return bookmakerMap[bookmakerKey] || bookmakerKey.charAt(0).toUpperCase() + bookmakerKey.slice(1);
+}
+
+function getBookmakerUrl(bookmakerKey: string): string {
+  const urlMap: Record<string, string> = {
+    'bet365': 'https://www.bet365.com.br/',
+    'betano': 'https://www.betano.com.br/',
+    'betfair': 'https://www.betfair.com.br/',
+    'pinnacle': 'https://www.pinnacle.com/pt/',
+    'betsson': 'https://www.betsson.com/br/',
+    'bwin': 'https://www.bwin.com/pt/',
+  };
+  
+  return urlMap[bookmakerKey] || '#';
 }
 
 serve(async (req) => {
@@ -138,63 +140,56 @@ serve(async (req) => {
   );
 
   try {
-    console.log('[Scraper] Starting scraping cycle at', new Date().toISOString());
+    console.log('[Scraper] Starting odds fetch at', new Date().toISOString());
     
-    // Executar scrapers em paralelo
-    const results = await Promise.allSettled([
-      scrapeBet365(),
-      scrapeBetano(),
-      scrapeRivalo(),
-      scrapePixbet(),
-    ]);
-
-    // Consolidar dados
-    const allEvents: ScrapedEvent[] = results
-      .filter((r): r is PromiseFulfilledResult<ScrapedEvent[]> => r.status === 'fulfilled')
-      .flatMap(r => r.value);
-
-    console.log(`[Scraper] Collected ${allEvents.length} events from scrapers`);
-
-    // Agrupar eventos por chave única
-    const eventsMap = new Map<string, ScrapedEvent>();
+    // Buscar odds de todos os esportes em paralelo
+    const allSportsPromises = SPORTS_TO_FETCH.map(sport => fetchOddsFromAPI(sport));
+    const allSportsResults = await Promise.all(allSportsPromises);
     
-    for (const event of allEvents) {
-      const uniqueKey = `${event.sport}_${event.league}_${event.homeTeam}_${event.awayTeam}`;
-      
-      if (!eventsMap.has(uniqueKey)) {
-        eventsMap.set(uniqueKey, {
-          eventKey: uniqueKey,
-          sport: event.sport,
-          league: event.league,
-          homeTeam: event.homeTeam,
-          awayTeam: event.awayTeam,
-          commenceTime: event.commenceTime,
-          odds: []
-        });
-      }
-      
-      const consolidatedEvent = eventsMap.get(uniqueKey)!;
-      consolidatedEvent.odds.push(...event.odds);
+    // Consolidar todos os eventos
+    const allEvents = allSportsResults.flat();
+    console.log(`[Scraper] Total events fetched: ${allEvents.length}`);
+
+    if (allEvents.length === 0) {
+      console.log('[Scraper] No events found from API');
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          eventsProcessed: 0,
+          oddsProcessed: 0,
+          message: 'No events available',
+          timestamp: new Date().toISOString()
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    const consolidatedEvents = Array.from(eventsMap.values());
-    console.log(`[Scraper] Consolidated into ${consolidatedEvents.length} unique events`);
-
-    // Salvar no banco
     let eventsProcessed = 0;
     let oddsProcessed = 0;
 
-    for (const event of consolidatedEvents) {
+    // Processar cada evento
+    for (const apiEvent of allEvents) {
+      // Filtrar eventos que começam nos próximos 10 dias
+      const eventDate = new Date(apiEvent.commence_time);
+      const tenDaysFromNow = new Date();
+      tenDaysFromNow.setDate(tenDaysFromNow.getDate() + 10);
+      
+      if (eventDate > tenDaysFromNow) {
+        continue; // Pular eventos muito distantes
+      }
+
+      const eventKey = `${apiEvent.sport_key}_${apiEvent.home_team}_${apiEvent.away_team}`.replace(/\s+/g, '_');
+      
       // Upsert evento
       const { data: eventData, error: eventError } = await supabase
         .from('events')
         .upsert({
-          event_key: event.eventKey,
-          sport: event.sport,
-          league: event.league,
-          home_team: event.homeTeam,
-          away_team: event.awayTeam,
-          commence_time: event.commenceTime,
+          event_key: eventKey,
+          sport: mapSportName(apiEvent.sport_key),
+          league: mapLeagueName(apiEvent.sport_title),
+          home_team: apiEvent.home_team,
+          away_team: apiEvent.away_team,
+          commence_time: apiEvent.commence_time,
           status: 'upcoming'
         }, { onConflict: 'event_key' })
         .select()
@@ -207,15 +202,31 @@ serve(async (req) => {
 
       eventsProcessed++;
 
-      // Insert odds (novo registro a cada scraping)
-      for (const odd of event.odds) {
+      // Processar odds de cada bookmaker
+      for (const bookmaker of apiEvent.bookmakers) {
+        const h2hMarket = bookmaker.markets.find(m => m.key === 'h2h');
+        
+        if (!h2hMarket || !h2hMarket.outcomes || h2hMarket.outcomes.length < 2) {
+          continue;
+        }
+
+        // Encontrar as odds
+        const homeOdds = h2hMarket.outcomes.find(o => o.name === apiEvent.home_team);
+        const awayOdds = h2hMarket.outcomes.find(o => o.name === apiEvent.away_team);
+        const drawOdds = h2hMarket.outcomes.find(o => o.name === 'Draw');
+
+        if (!homeOdds || !awayOdds) {
+          continue;
+        }
+
+        // Inserir odds
         const { error: oddError } = await supabase.from('odds').insert({
           event_id: eventData.id,
-          bookmaker: odd.bookmaker,
-          bookmaker_url: odd.url,
-          home_odd: odd.home,
-          draw_odd: odd.draw,
-          away_odd: odd.away,
+          bookmaker: mapBookmakerName(bookmaker.key),
+          bookmaker_url: getBookmakerUrl(bookmaker.key),
+          home_odd: homeOdds.price,
+          draw_odd: drawOdds?.price || null,
+          away_odd: awayOdds.price,
         });
 
         if (oddError) {
