@@ -14,6 +14,7 @@ import { useFavorites } from "@/hooks/useFavorites";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { mockEvents } from "@/data/mockData";
+import { useDataInitializer } from "@/hooks/useDataInitializer";
 
 
 const SPORTS = {
@@ -38,6 +39,7 @@ const LiveOdds = () => {
   
   const { events, loading, error, lastUpdate, refetch } = useRealTimeOdds(activeTab === 'futebol' ? 'Futebol' : undefined);
   const { isFavorite, toggleFavorite } = useFavorites();
+  const { isInitializing, hasData, refetch: refetchData } = useDataInitializer();
 
 
   useEffect(() => {
@@ -196,6 +198,34 @@ const LiveOdds = () => {
               </Button>
             </div>
           </div>
+
+          {/* Data Status Alert */}
+          {hasData === false && !isInitializing && (
+            <Alert className="mb-6 border-primary/50 bg-primary/5">
+              <AlertDescription className="flex items-center justify-between">
+                <span className="text-foreground">
+                  Nenhum dado encontrado. Clique em "Atualizar Dados" para carregar os eventos.
+                </span>
+                <Button 
+                  onClick={refetchData}
+                  size="sm"
+                  className="bg-gradient-primary"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Atualizar Dados
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {isInitializing && (
+            <Alert className="mb-6 border-accent/50 bg-accent/5">
+              <AlertDescription className="flex items-center gap-3">
+                <RefreshCw className="h-4 w-4 animate-spin text-accent" />
+                <span className="text-foreground">Carregando dados das casas de apostas...</span>
+              </AlertDescription>
+            </Alert>
+          )}
 
           {/* Search and Filters */}
           <div className="flex gap-3">

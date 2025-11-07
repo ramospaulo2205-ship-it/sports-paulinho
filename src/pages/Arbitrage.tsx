@@ -8,12 +8,18 @@ import { Button } from "@/components/ui/button";
 import { mockEvents, calculateArbitrage, bookmakers } from "@/data/mockData";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { TrendingUp, Calculator, Save, ExternalLink } from "lucide-react";
+import { TrendingUp, Calculator, Save, ExternalLink, RefreshCw } from "lucide-react";
+import { useRealTimeOdds } from "@/hooks/useRealTimeOdds";
+import { useDataInitializer } from "@/hooks/useDataInitializer";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Arbitrage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [user, setUser] = useState<any>(null);
+  
+  const { events: realEvents, loading } = useRealTimeOdds();
+  const { isInitializing, hasData, refetch: refetchData } = useDataInitializer();
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -87,7 +93,10 @@ const Arbitrage = () => {
     const bookmaker = bookmakers.find(b => b.name === bookmakerName);
     return bookmaker?.url || "#";
   };
-  const arbitrageOpportunities = mockEvents
+  
+  const sourceEvents = realEvents.length > 0 ? realEvents : mockEvents;
+  
+  const arbitrageOpportunities = sourceEvents
     .map((event) => {
       const allOdds = event.odds.map(o => ({
         home: o.home,
@@ -143,6 +152,34 @@ const Arbitrage = () => {
             Encontre oportunidades de arbitragem esportiva onde você pode garantir lucro apostando em todos os resultados possíveis.
           </p>
         </div>
+
+        {/* Data Status Alert */}
+        {hasData === false && !isInitializing && (
+          <Alert className="mb-6 border-primary/50 bg-primary/5">
+            <AlertDescription className="flex items-center justify-between">
+              <span className="text-foreground">
+                Nenhum dado encontrado. Clique em "Atualizar Dados" para carregar os eventos.
+              </span>
+              <Button 
+                onClick={refetchData}
+                size="sm"
+                className="bg-gradient-primary"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Atualizar Dados
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {isInitializing && (
+          <Alert className="mb-6 border-accent/50 bg-accent/5">
+            <AlertDescription className="flex items-center gap-3">
+              <RefreshCw className="h-4 w-4 animate-spin text-accent" />
+              <span className="text-foreground">Carregando dados das casas de apostas...</span>
+            </AlertDescription>
+          </Alert>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Calculator */}

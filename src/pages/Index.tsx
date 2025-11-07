@@ -5,9 +5,11 @@ import OddsCard from "@/components/OddsCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { mockEvents, sports, calculateArbitrage } from "@/data/mockData";
-import { Search, TrendingUp } from "lucide-react";
+import { Search, TrendingUp, RefreshCw } from "lucide-react";
 import { useRealTimeOdds } from "@/hooks/useRealTimeOdds";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useDataInitializer } from "@/hooks/useDataInitializer";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -15,6 +17,7 @@ const Index = () => {
   const [searchQuery, setSearchQuery] = useState("");
   
   const { events: realEvents, loading } = useRealTimeOdds();
+  const { isInitializing, hasData, refetch } = useDataInitializer();
 
   const now = new Date();
   
@@ -99,6 +102,34 @@ const Index = () => {
       {/* Search and Filter Section */}
       <section className="py-12 px-4">
         <div className="container mx-auto">
+          {/* Data Status Alert */}
+          {hasData === false && !isInitializing && (
+            <Alert className="mb-6 border-primary/50 bg-primary/5">
+              <AlertDescription className="flex items-center justify-between">
+                <span className="text-foreground">
+                  Nenhum dado encontrado. Clique em "Atualizar Dados" para carregar os eventos.
+                </span>
+                <Button 
+                  onClick={refetch}
+                  size="sm"
+                  className="bg-gradient-primary"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Atualizar Dados
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {isInitializing && (
+            <Alert className="mb-6 border-accent/50 bg-accent/5">
+              <AlertDescription className="flex items-center gap-3">
+                <RefreshCw className="h-4 w-4 animate-spin text-accent" />
+                <span className="text-foreground">Carregando dados das casas de apostas...</span>
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div className="mb-8">
             <div className="relative max-w-xl mx-auto mb-6">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />

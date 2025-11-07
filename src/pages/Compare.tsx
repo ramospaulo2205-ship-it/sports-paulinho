@@ -7,8 +7,10 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { mockEvents, bookmakers } from "@/data/mockData";
-import { Calendar, Clock, TrendingUp, ExternalLink } from "lucide-react";
+import { Calendar, Clock, TrendingUp, ExternalLink, RefreshCw } from "lucide-react";
 import { useRealTimeOdds } from "@/hooks/useRealTimeOdds";
+import { useDataInitializer } from "@/hooks/useDataInitializer";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Compare = () => {
   const navigate = useNavigate();
@@ -17,6 +19,7 @@ const Compare = () => {
   const [user, setUser] = useState(null);
   const eventId = searchParams.get("event");
   const { events, loading } = useRealTimeOdds();
+  const { isInitializing, hasData, refetch: refetchData } = useDataInitializer();
   
   // Redirect to new route format if accessed via old query param
   useEffect(() => {
@@ -94,6 +97,34 @@ const Compare = () => {
       <Navbar />
       
       <div className="container mx-auto px-4 py-8">
+        {/* Data Status Alert */}
+        {hasData === false && !isInitializing && (
+          <Alert className="mb-6 border-primary/50 bg-primary/5">
+            <AlertDescription className="flex items-center justify-between">
+              <span className="text-foreground">
+                Nenhum dado encontrado. Clique em "Atualizar Dados" para carregar os eventos.
+              </span>
+              <Button 
+                onClick={refetchData}
+                size="sm"
+                className="bg-gradient-primary"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Atualizar Dados
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {isInitializing && (
+          <Alert className="mb-6 border-accent/50 bg-accent/5">
+            <AlertDescription className="flex items-center gap-3">
+              <RefreshCw className="h-4 w-4 animate-spin text-accent" />
+              <span className="text-foreground">Carregando dados das casas de apostas...</span>
+            </AlertDescription>
+          </Alert>
+        )}
+
         <div className="mb-8 animate-fade-in">
           <Badge className="mb-3 bg-gradient-primary text-primary-foreground border-0">
             {selectedEvent.league}
