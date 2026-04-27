@@ -223,10 +223,11 @@ export const calculateArbitrage = (odds: { home: number; draw?: number; away: nu
 
   const bestHome = Math.max(...odds.map(o => o.home));
   const bestAway = Math.max(...odds.map(o => o.away));
-  const bestDraw = odds[0].draw ? Math.max(...odds.map(o => o.draw || 0)) : 0;
+  const hasDraw = odds.some(o => o.draw !== undefined && o.draw > 0);
+  const bestDraw = hasDraw ? Math.max(...odds.map(o => o.draw ?? 0)) : 0;
 
   let inverseSum: number;
-  if (bestDraw > 0) {
+  if (hasDraw && bestDraw > 0) {
     inverseSum = (1 / bestHome) + (1 / bestDraw) + (1 / bestAway);
   } else {
     inverseSum = (1 / bestHome) + (1 / bestAway);
