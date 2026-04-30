@@ -22,6 +22,28 @@ interface DatabaseEvent {
   }>;
 }
 
+function normalizeSportId(value: string): string {
+  const map: Record<string, string> = {
+    // Portuguese display names (old DB values)
+    'Futebol': 'soccer',
+    'Basquete': 'basketball',
+    'Tênis': 'tennis',
+    'Futebol Americano': 'football',
+    'Hockey': 'icehockey',
+    'MMA/UFC': 'mma',
+    // Raw API sport keys (fallback)
+    'soccer_brazil_campeonato': 'soccer',
+    'soccer_uefa_champs_league': 'soccer',
+    'soccer_epl': 'soccer',
+    'basketball_nba': 'basketball',
+    'americanfootball_nfl': 'football',
+    'icehockey_nhl': 'icehockey',
+    'tennis_atp_aus_open_singles': 'tennis',
+    'mma_mixed_martial_arts': 'mma',
+  };
+  return map[value] ?? value;
+}
+
 export function useRealTimeOdds(sport?: string) {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
@@ -111,7 +133,7 @@ export function useRealTimeOdds(sport?: string) {
 
         return {
           id: event.id,
-          sport: event.sport,
+          sport: normalizeSportId(event.sport),
           league: event.league,
           homeTeam: event.home_team,
           awayTeam: event.away_team,
