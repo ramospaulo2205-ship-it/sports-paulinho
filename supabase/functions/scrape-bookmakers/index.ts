@@ -76,23 +76,23 @@ async function fetchOddsFromAPI(sport: string): Promise<OddsAPIEvent[]> {
 
 function mapSportName(sportKey: string): string {
   const sportMap: Record<string, string> = {
-    'soccer_brazil_campeonato': 'Futebol',
-    'soccer_uefa_champs_league': 'Futebol',
-    'soccer_uefa_europa_league': 'Futebol',
-    'soccer_epl': 'Futebol',
-    'soccer_spain_la_liga': 'Futebol',
-    'soccer_italy_serie_a': 'Futebol',
-    'soccer_germany_bundesliga': 'Futebol',
-    'soccer_france_ligue_one': 'Futebol',
-    'basketball_nba': 'Basquete',
-    'basketball_euroleague': 'Basquete',
-    'americanfootball_nfl': 'Futebol Americano',
-    'icehockey_nhl': 'Hockey',
-    'tennis_atp_aus_open_singles': 'Tênis',
-    'mma_mixed_martial_arts': 'MMA/UFC',
+    'soccer_brazil_campeonato': 'soccer',
+    'soccer_uefa_champs_league': 'soccer',
+    'soccer_uefa_europa_league': 'soccer',
+    'soccer_epl': 'soccer',
+    'soccer_spain_la_liga': 'soccer',
+    'soccer_italy_serie_a': 'soccer',
+    'soccer_germany_bundesliga': 'soccer',
+    'soccer_france_ligue_one': 'soccer',
+    'basketball_nba': 'basketball',
+    'basketball_euroleague': 'basketball',
+    'americanfootball_nfl': 'football',
+    'icehockey_nhl': 'icehockey',
+    'tennis_atp_aus_open_singles': 'tennis',
+    'mma_mixed_martial_arts': 'mma',
   };
-  
-  return sportMap[sportKey] || 'Outros';
+
+  return sportMap[sportKey] || 'other';
 }
 
 function mapLeagueName(sportTitle: string): string {

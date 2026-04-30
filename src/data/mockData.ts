@@ -5,6 +5,8 @@ export const sports: Sport[] = [
   { id: "basketball", name: "Basquete", icon: "🏀", active: true },
   { id: "tennis", name: "Tênis", icon: "🎾", active: true },
   { id: "football", name: "Futebol Americano", icon: "🏈", active: true },
+  { id: "icehockey", name: "Hockey no Gelo", icon: "🏒", active: true },
+  { id: "mma", name: "MMA/UFC", icon: "🥊", active: true },
 ];
 
 export const bookmakers: Bookmaker[] = [
@@ -25,7 +27,7 @@ export const mockEvents: Event[] = [
     league: "Brasileirão Série A",
     homeTeam: "Flamengo",
     awayTeam: "Palmeiras",
-    date: "2025-10-23",
+    date: "2026-10-23",
     time: "20:00",
     odds: [
       { bookmaker: "Bet365", home: 2.10, draw: 3.20, away: 3.50 },
@@ -41,7 +43,7 @@ export const mockEvents: Event[] = [
     league: "Brasileirão Série A",
     homeTeam: "Corinthians",
     awayTeam: "Santos",
-    date: "2025-10-24",
+    date: "2026-10-24",
     time: "18:30",
     odds: [
       { bookmaker: "Bet365", home: 1.85, draw: 3.40, away: 4.20 },
@@ -56,7 +58,7 @@ export const mockEvents: Event[] = [
     league: "Brasileirão Série A",
     homeTeam: "São Paulo",
     awayTeam: "Atlético-MG",
-    date: "2025-10-25",
+    date: "2026-10-25",
     time: "19:00",
     odds: [
       { bookmaker: "Bet365", home: 2.30, draw: 3.10, away: 3.20 },
@@ -71,7 +73,7 @@ export const mockEvents: Event[] = [
     league: "NBA",
     homeTeam: "Lakers",
     awayTeam: "Warriors",
-    date: "2025-10-26",
+    date: "2026-10-26",
     time: "22:00",
     odds: [
       { bookmaker: "Bet365", home: 1.95, away: 1.95 },
@@ -86,7 +88,7 @@ export const mockEvents: Event[] = [
     league: "UEFA Champions League",
     homeTeam: "Real Madrid",
     awayTeam: "Barcelona",
-    date: "2025-10-27",
+    date: "2026-10-27",
     time: "16:00",
     odds: [
       { bookmaker: "Bet365", home: 2.40, draw: 3.30, away: 2.90 },
@@ -101,7 +103,7 @@ export const mockEvents: Event[] = [
     league: "NFL",
     homeTeam: "Kansas City Chiefs",
     awayTeam: "San Francisco 49ers",
-    date: "2025-10-28",
+    date: "2026-10-28",
     time: "21:30",
     odds: [
       { bookmaker: "Bet365", home: 1.75, away: 2.15 },
@@ -116,7 +118,7 @@ export const mockEvents: Event[] = [
     league: "ATP Finals",
     homeTeam: "Novak Djokovic",
     awayTeam: "Carlos Alcaraz",
-    date: "2025-10-29",
+    date: "2026-10-29",
     time: "15:00",
     odds: [
       { bookmaker: "Bet365", home: 1.65, away: 2.30 },
@@ -131,7 +133,7 @@ export const mockEvents: Event[] = [
     league: "Copa Libertadores da América",
     homeTeam: "Fluminense",
     awayTeam: "Boca Juniors",
-    date: "2025-10-30",
+    date: "2026-10-30",
     time: "21:30",
     odds: [
       { bookmaker: "Betano", home: 2.15, draw: 3.10, away: 3.40 },
@@ -146,7 +148,7 @@ export const mockEvents: Event[] = [
     league: "Copa Libertadores da América",
     homeTeam: "River Plate",
     awayTeam: "Palmeiras",
-    date: "2025-10-31",
+    date: "2026-10-31",
     time: "21:30",
     odds: [
       { bookmaker: "Bet365", home: 2.05, draw: 3.20, away: 3.60 },
@@ -161,7 +163,7 @@ export const mockEvents: Event[] = [
     league: "UEFA Champions League",
     homeTeam: "Manchester City",
     awayTeam: "Bayern Munich",
-    date: "2025-11-01",
+    date: "2026-11-01",
     time: "17:00",
     odds: [
       { bookmaker: "Bet365", home: 2.25, draw: 3.40, away: 3.10 },
@@ -176,7 +178,7 @@ export const mockEvents: Event[] = [
     league: "UEFA Champions League",
     homeTeam: "PSG",
     awayTeam: "Inter Milan",
-    date: "2025-11-02",
+    date: "2026-11-02",
     time: "17:00",
     odds: [
       { bookmaker: "Betano", home: 1.95, draw: 3.50, away: 3.80 },
@@ -191,7 +193,7 @@ export const mockEvents: Event[] = [
     league: "Brasileirão Série A",
     homeTeam: "Grêmio",
     awayTeam: "Internacional",
-    date: "2025-11-03",
+    date: "2026-11-03",
     time: "16:00",
     odds: [
       { bookmaker: "Bet365", home: 2.40, draw: 3.20, away: 2.90 },
@@ -206,7 +208,7 @@ export const mockEvents: Event[] = [
     league: "Brasileirão Série A",
     homeTeam: "Botafogo",
     awayTeam: "Vasco",
-    date: "2025-11-04",
+    date: "2026-11-04",
     time: "19:00",
     odds: [
       { bookmaker: "Betano", home: 1.75, draw: 3.60, away: 4.50 },

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import OddsCard from "@/components/OddsCard";
@@ -19,7 +19,7 @@ const Index = () => {
   const { events: realEvents, loading } = useRealTimeOdds();
   const { isInitializing, hasData, refetch } = useDataInitializer();
 
-  const now = new Date();
+  const now = useRef(new Date()).current;
   
   // Usar eventos reais se disponíveis, senão usar mock
   const sourceEvents = realEvents.length > 0 ? realEvents : mockEvents;
@@ -46,7 +46,7 @@ const Index = () => {
         const dateB = b.commenceTime ? new Date(b.commenceTime) : new Date(`${b.date}T${b.time}`);
         return dateA.getTime() - dateB.getTime();
       });
-  }, [sourceEvents, selectedSport, searchQuery, now]);
+  }, [sourceEvents, selectedSport, searchQuery]);
 
   const getEventArbitrage = (event: typeof mockEvents[0]) => {
     const allOdds = event.odds.map(o => ({

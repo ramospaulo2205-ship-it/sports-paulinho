@@ -46,7 +46,7 @@ const Compare = () => {
           title: "Acesso negado",
           description: "Você precisa fazer login para acessar esta página.",
         });
-        navigate("/login");
+        navigate("/auth");
         return;
       }
       setUser(session.user);

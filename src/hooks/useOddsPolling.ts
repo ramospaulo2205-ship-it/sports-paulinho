@@ -149,13 +149,24 @@ export const useOddsPolling = (sports: string[]) => {
 // Helper functions
 function getSportDisplayName(sportKey: string): string {
   const sportMap: Record<string, string> = {
-    'soccer_brazil_campeonato': 'Futebol',
-    'basketball_nba': 'Basquete',
-    'tennis_atp_singles': 'Tênis',
-    'esports_lol_worlds': 'E-Sports',
-    'mma_mixed_martial_arts': 'UFC/MMA',
+    'soccer_brazil_campeonato': 'soccer',
+    'soccer_uefa_champs_league': 'soccer',
+    'soccer_uefa_europa_league': 'soccer',
+    'soccer_epl': 'soccer',
+    'soccer_spain_la_liga': 'soccer',
+    'soccer_italy_serie_a': 'soccer',
+    'soccer_germany_bundesliga': 'soccer',
+    'soccer_france_ligue_one': 'soccer',
+    'basketball_nba': 'basketball',
+    'basketball_euroleague': 'basketball',
+    'tennis_atp_singles': 'tennis',
+    'tennis_atp_aus_open_singles': 'tennis',
+    'americanfootball_nfl': 'football',
+    'icehockey_nhl': 'icehockey',
+    'mma_mixed_martial_arts': 'mma',
+    'esports_lol_worlds': 'other',
   };
-  return sportMap[sportKey] || 'Outros';
+  return sportMap[sportKey] || 'other';
 }
 
 function transformBookmakerOdds(
