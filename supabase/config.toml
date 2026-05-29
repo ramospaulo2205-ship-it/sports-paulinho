@@ -1,4 +1,4 @@
-project_id = "utxylkasnnamxdgbatau"
+project_id = "flltoxywqffocnlbottb"
 
 # verify_jwt fica false de propósito: a autorização do scraper é feita
 # internamente via header x-cron-secret (só o pg_cron conhece o segredo).
