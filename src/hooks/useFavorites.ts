@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 const MAX_FAVORITES = 50;
 
@@ -8,29 +9,29 @@ export const useFavorites = () => {
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
-    loadFavorites();
-  }, []);
+    if (!user) {
+      setFavorites(new Set());
+      setLoading(false);
+      return;
+    }
+    loadFavorites(user.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
-  const loadFavorites = async () => {
+  const loadFavorites = async (userId: string) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        setLoading(false);
-        return;
-      }
-
       const { data, error } = await supabase
         .from('favorites')
         .select('event_id')
-        .eq('user_id', session.user.id);
+        .eq('user_id', userId);
 
       if (error) throw error;
 
       setFavorites(new Set(data.map(f => f.event_id)));
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error loading favorites:', error);
     } finally {
       setLoading(false);
@@ -39,9 +40,7 @@ export const useFavorites = () => {
 
   const toggleFavorite = useCallback(async (eventId: string) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
+      if (!user) {
         toast({
           variant: 'destructive',
           title: 'Login necessário',
@@ -66,7 +65,7 @@ export const useFavorites = () => {
         const { error } = await supabase
           .from('favorites')
           .delete()
-          .eq('user_id', session.user.id)
+          .eq('user_id', user.id)
           .eq('event_id', eventId);
 
         if (error) throw error;
@@ -85,7 +84,7 @@ export const useFavorites = () => {
         const { error } = await supabase
           .from('favorites')
           .insert({
-            user_id: session.user.id,
+            user_id: user.id,
             event_id: eventId,
           });
 
@@ -97,15 +96,15 @@ export const useFavorites = () => {
           title: 'Adicionado aos favoritos',
         });
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error toggling favorite:', error);
       toast({
         variant: 'destructive',
         title: 'Erro ao salvar favorito',
-        description: error.message,
+        description: error instanceof Error ? error.message : String(error),
       });
     }
-  }, [favorites, toast]);
+  }, [favorites, toast, user]);
 
   return {
     favorites,

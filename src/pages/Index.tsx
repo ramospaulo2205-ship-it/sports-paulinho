@@ -5,7 +5,7 @@ import OddsCard from "@/components/OddsCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { mockEvents, sports, calculateArbitrage } from "@/data/mockData";
-import { Search, TrendingUp, RefreshCw } from "lucide-react";
+import { Search, TrendingUp, RefreshCw, AlertTriangle } from "lucide-react";
 import { useRealTimeOdds } from "@/hooks/useRealTimeOdds";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDataInitializer } from "@/hooks/useDataInitializer";
@@ -21,7 +21,7 @@ const Index = () => {
 
   const now = useRef(new Date()).current;
   
-  // Usar eventos reais se disponíveis, senão usar mock
+  const isShowingMock = !loading && !isInitializing && realEvents.length === 0;
   const sourceEvents = realEvents.length > 0 ? realEvents : mockEvents;
   
   const filteredEvents = useMemo(() => {
@@ -107,15 +107,15 @@ const Index = () => {
             <Alert className="mb-6 border-primary/50 bg-primary/5">
               <AlertDescription className="flex items-center justify-between">
                 <span className="text-foreground">
-                  Nenhum dado encontrado. Clique em "Atualizar Dados" para carregar os eventos.
+                  Nenhum dado disponível ainda. As odds são coletadas automaticamente em ciclos — clique para recarregar.
                 </span>
-                <Button 
+                <Button
                   onClick={refetch}
                   size="sm"
                   className="bg-gradient-primary"
                 >
                   <RefreshCw className="h-4 w-4 mr-2" />
-                  Atualizar Dados
+                  Recarregar
                 </Button>
               </AlertDescription>
             </Alert>
@@ -125,7 +125,7 @@ const Index = () => {
             <Alert className="mb-6 border-accent/50 bg-accent/5">
               <AlertDescription className="flex items-center gap-3">
                 <RefreshCw className="h-4 w-4 animate-spin text-accent" />
-                <span className="text-foreground">Carregando dados das casas de apostas...</span>
+                <span className="text-foreground">Verificando dados…</span>
               </AlertDescription>
             </Alert>
           )}
@@ -162,6 +162,15 @@ const Index = () => {
               ))}
             </div>
           </div>
+
+          {isShowingMock && (
+            <Alert className="mb-6 border-yellow-500/50 bg-yellow-500/10">
+              <AlertTriangle className="h-4 w-4 text-yellow-600" />
+              <AlertDescription className="text-yellow-700 dark:text-yellow-400">
+                <span className="font-medium">Dados de demonstração</span> — estes eventos são fictícios. As odds reais são coletadas automaticamente; use "Recarregar" acima.
+              </AlertDescription>
+            </Alert>
+          )}
 
           {/* Events Grid */}
           {loading ? (

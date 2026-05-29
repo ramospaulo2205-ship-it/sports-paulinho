@@ -49,7 +49,7 @@ interface OddsAPIEvent {
 
 async function fetchOddsFromAPI(sport: string): Promise<OddsAPIEvent[]> {
   try {
-    const url = `${ODDS_API_BASE}/sports/${sport}/odds/?apiKey=${ODDS_API_KEY}&regions=us,uk,eu,au&markets=h2h&oddsFormat=decimal&dateFormat=iso`;
+    const url = `${ODDS_API_BASE}/sports/${sport}/odds/?apiKey=${ODDS_API_KEY}&regions=eu&markets=h2h&oddsFormat=decimal&dateFormat=iso`;
     
     console.log(`[${sport}] Fetching odds from The Odds API...`);
     
@@ -134,6 +134,16 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Autorização: só o agendador (pg_cron) com o segredo pode disparar o scraper.
+  // Evita que terceiros queimem a cota da The Odds API ou escrevam no banco.
+  const CRON_SECRET = Deno.env.get('CRON_SECRET');
+  if (!CRON_SECRET || req.headers.get('x-cron-secret') !== CRON_SECRET) {
+    return new Response(
+      JSON.stringify({ success: false, error: 'unauthorized' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -178,7 +188,9 @@ serve(async (req) => {
         continue; // Pular eventos muito distantes
       }
 
-      const eventKey = `${apiEvent.sport_key}_${apiEvent.home_team}_${apiEvent.away_team}`.replace(/\s+/g, '_');
+      // Inclui a data do confronto para não colidir returno/rematch dos mesmos times
+      const eventDay = apiEvent.commence_time.slice(0, 10); // YYYY-MM-DD
+      const eventKey = `${apiEvent.sport_key}_${apiEvent.home_team}_${apiEvent.away_team}_${eventDay}`.replace(/\s+/g, '_');
       
       // Upsert evento
       const { data: eventData, error: eventError } = await supabase
@@ -202,15 +214,15 @@ serve(async (req) => {
 
       eventsProcessed++;
 
-      // Processar odds de cada bookmaker
+      // Montar as odds de cada bookmaker e inserir em lote (1 insert por evento)
+      const oddsRows = [];
       for (const bookmaker of apiEvent.bookmakers) {
         const h2hMarket = bookmaker.markets.find(m => m.key === 'h2h');
-        
+
         if (!h2hMarket || !h2hMarket.outcomes || h2hMarket.outcomes.length < 2) {
           continue;
         }
 
-        // Encontrar as odds
         const homeOdds = h2hMarket.outcomes.find(o => o.name === apiEvent.home_team);
         const awayOdds = h2hMarket.outcomes.find(o => o.name === apiEvent.away_team);
         const drawOdds = h2hMarket.outcomes.find(o => o.name === 'Draw');
@@ -219,8 +231,7 @@ serve(async (req) => {
           continue;
         }
 
-        // Inserir odds
-        const { error: oddError } = await supabase.from('odds').insert({
+        oddsRows.push({
           event_id: eventData.id,
           bookmaker: mapBookmakerName(bookmaker.key),
           bookmaker_url: getBookmakerUrl(bookmaker.key),
@@ -228,11 +239,14 @@ serve(async (req) => {
           draw_odd: drawOdds?.price || null,
           away_odd: awayOdds.price,
         });
+      }
 
+      if (oddsRows.length > 0) {
+        const { error: oddError } = await supabase.from('odds').insert(oddsRows);
         if (oddError) {
-          console.error('[DB] Odd insert error:', oddError);
+          console.error('[DB] Odds batch insert error:', oddError);
         } else {
-          oddsProcessed++;
+          oddsProcessed += oddsRows.length;
         }
       }
     }

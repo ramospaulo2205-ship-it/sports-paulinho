@@ -1,7 +1,5 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/Navbar";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,9 +12,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Compare = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [searchParams] = useSearchParams();
-  const [user, setUser] = useState(null);
   const eventId = searchParams.get("event");
   const { events, loading } = useRealTimeOdds();
   const { isInitializing, hasData, refetch: refetchData } = useDataInitializer();
@@ -36,34 +32,6 @@ const Compare = () => {
       setSelectedEvent(allEvents[0]);
     }
   }, [allEvents, selectedEvent]);
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast({
-          variant: "destructive",
-          title: "Acesso negado",
-          description: "Você precisa fazer login para acessar esta página.",
-        });
-        navigate("/auth");
-        return;
-      }
-      setUser(session.user);
-    };
-
-    checkAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) {
-        navigate("/login");
-      } else {
-        setUser(session.user);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate, toast]);
 
   if (!selectedEvent) return null;
 
@@ -102,15 +70,15 @@ const Compare = () => {
           <Alert className="mb-6 border-primary/50 bg-primary/5">
             <AlertDescription className="flex items-center justify-between">
               <span className="text-foreground">
-                Nenhum dado encontrado. Clique em "Atualizar Dados" para carregar os eventos.
+                Nenhum dado disponível ainda. As odds são coletadas automaticamente em ciclos — clique para recarregar.
               </span>
-              <Button 
+              <Button
                 onClick={refetchData}
                 size="sm"
                 className="bg-gradient-primary"
               >
                 <RefreshCw className="h-4 w-4 mr-2" />
-                Atualizar Dados
+                Recarregar
               </Button>
             </AlertDescription>
           </Alert>
@@ -120,7 +88,7 @@ const Compare = () => {
           <Alert className="mb-6 border-accent/50 bg-accent/5">
             <AlertDescription className="flex items-center gap-3">
               <RefreshCw className="h-4 w-4 animate-spin text-accent" />
-              <span className="text-foreground">Carregando dados das casas de apostas...</span>
+              <span className="text-foreground">Verificando dados…</span>
             </AlertDescription>
           </Alert>
         )}

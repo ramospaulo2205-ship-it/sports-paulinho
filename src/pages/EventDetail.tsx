@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { Card } from "@/components/ui/card";
@@ -10,14 +10,12 @@ import { useFavorites } from "@/hooks/useFavorites";
 import { useToast } from "@/hooks/use-toast";
 import OddVariation from "@/components/OddVariation";
 import { Skeleton } from "@/components/ui/skeleton";
-import { supabase } from "@/integrations/supabase/client";
 import { mockEvents } from "@/data/mockData";
 
 const EventDetail = () => {
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [user, setUser] = useState(null);
   const { event: dbEvent, loading } = useEventDetails(eventId);
   const { isFavorite, toggleFavorite } = useFavorites();
 
@@ -45,34 +43,6 @@ const EventDetail = () => {
     };
     return known[bookmakerName] || "";
   };
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast({
-          variant: "destructive",
-          title: "Acesso negado",
-          description: "Você precisa fazer login para acessar esta página.",
-        });
-        navigate("/auth");
-        return;
-      }
-      setUser(session.user);
-    };
-
-    checkAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) {
-        navigate("/auth");
-      } else {
-        setUser(session.user);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate, toast]);
 
   useEffect(() => {
     if (!loading && !event) {

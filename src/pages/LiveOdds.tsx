@@ -1,7 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/Navbar";
 import OddsCard from "@/components/OddsCard";
 import SearchBar, { normalizeText } from "@/components/SearchBar";
@@ -25,10 +23,16 @@ const SPORTS = {
   ufc: ['mma_mixed_martial_arts'],
 };
 
+const TAB_SPORT: Record<keyof typeof SPORTS, string> = {
+  futebol: 'soccer',
+  basquete: 'basketball',
+  tenis: 'tennis',
+  esports: 'esports',
+  ufc: 'mma',
+};
+
 const LiveOdds = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState<keyof typeof SPORTS>('futebol');
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLeagues, setSelectedLeagues] = useState<string[]>([]);
@@ -37,44 +41,19 @@ const LiveOdds = () => {
     end: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
   });
   
-  const { events, loading, error, lastUpdate, refetch } = useRealTimeOdds(activeTab === 'futebol' ? 'Futebol' : undefined);
+  const { events, loading, error, lastUpdate, refetch } = useRealTimeOdds();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { isInitializing, hasData, refetch: refetchData } = useDataInitializer();
 
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast({
-          variant: "destructive",
-          title: "Acesso negado",
-          description: "Você precisa fazer login para acessar esta página.",
-        });
-        navigate("/auth");
-        return;
-      }
-      setUser(session.user);
-    };
-
-    checkAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) {
-        navigate("/auth");
-      } else {
-        setUser(session.user);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate, toast]);
-
-  // Filter events based on search, leagues, and date range
+  // Filter events based on active tab sport, search, leagues, and date range
   const filteredEvents = useMemo(() => {
     const now = new Date();
-    
+    const targetSport = TAB_SPORT[activeTab];
+
     return events.filter((event) => {
+      // Sport tab filter
+      if (event.sport !== targetSport) return false;
+
       // Filtrar apenas eventos futuros
       if (event.commenceTime) {
         const eventDate = new Date(event.commenceTime);
@@ -87,12 +66,12 @@ const LiveOdds = () => {
         const normalizedHome = normalizeText(event.homeTeam);
         const normalizedAway = normalizeText(event.awayTeam);
         const normalizedLeague = normalizeText(event.league);
-        
+
         const matchesSearch =
           normalizedHome.includes(normalizedQuery) ||
           normalizedAway.includes(normalizedQuery) ||
           normalizedLeague.includes(normalizedQuery);
-        
+
         if (!matchesSearch) return false;
       }
 
@@ -111,19 +90,11 @@ const LiveOdds = () => {
 
       return true;
     });
-  }, [events, searchQuery, selectedLeagues, dateRange]);
+  }, [events, activeTab, searchQuery, selectedLeagues, dateRange]);
 
-
-  const tabToMockSport: Record<keyof typeof SPORTS, string> = {
-    futebol: 'soccer',
-    basquete: 'basketball',
-    tenis: 'tennis',
-    esports: 'esports',
-    ufc: 'football',
-  };
 
   const filteredMockEvents = useMemo(() => {
-    const targetSport = tabToMockSport[activeTab];
+    const targetSport = TAB_SPORT[activeTab];
     const list = mockEvents.filter((e) => !targetSport || e.sport === targetSport);
     if (list.length === 0) return [] as typeof mockEvents;
 
@@ -204,15 +175,15 @@ const LiveOdds = () => {
             <Alert className="mb-6 border-primary/50 bg-primary/5">
               <AlertDescription className="flex items-center justify-between">
                 <span className="text-foreground">
-                  Nenhum dado encontrado. Clique em "Atualizar Dados" para carregar os eventos.
+                  Nenhum dado disponível ainda. As odds são coletadas automaticamente em ciclos — clique para recarregar.
                 </span>
-                <Button 
+                <Button
                   onClick={refetchData}
                   size="sm"
                   className="bg-gradient-primary"
                 >
                   <RefreshCw className="h-4 w-4 mr-2" />
-                  Atualizar Dados
+                  Recarregar
                 </Button>
               </AlertDescription>
             </Alert>
@@ -222,7 +193,7 @@ const LiveOdds = () => {
             <Alert className="mb-6 border-accent/50 bg-accent/5">
               <AlertDescription className="flex items-center gap-3">
                 <RefreshCw className="h-4 w-4 animate-spin text-accent" />
-                <span className="text-foreground">Carregando dados das casas de apostas...</span>
+                <span className="text-foreground">Verificando dados…</span>
               </AlertDescription>
             </Alert>
           )}
