@@ -2,45 +2,32 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
 import { Calculator } from "lucide-react";
+import { computeStakes } from "@/lib/arbitrage";
 
-const ArbitrageCalculator = () => {
-  const [stake, setStake] = useState<string>("1000");
+interface Props {
+  stake?: string;
+  onStakeChange?: (value: string) => void;
+}
+
+const ArbitrageCalculator = ({ stake: stakeProp, onStakeChange }: Props = {}) => {
+  const [localStake, setLocalStake] = useState<string>(stakeProp ?? "1000");
+  const stake = stakeProp ?? localStake;
   const [odd1, setOdd1] = useState<string>("2.10");
   const [odd2, setOdd2] = useState<string>("3.60");
 
-  const calculateArbitrage = () => {
-    const totalStake = parseFloat(stake) || 0;
-    const o1 = parseFloat(odd1) || 0;
-    const o2 = parseFloat(odd2) || 0;
-
-    if (o1 <= 0 || o2 <= 0 || totalStake <= 0) {
-      return { profit: 0, stake1: 0, stake2: 0, hasArbitrage: false };
+  const handleStakeChange = (value: string) => {
+    if (onStakeChange) {
+      onStakeChange(value);
+    } else {
+      setLocalStake(value);
     }
-
-    const inverseSum = (1 / o1) + (1 / o2);
-    
-    if (inverseSum >= 1) {
-      return { profit: 0, stake1: 0, stake2: 0, hasArbitrage: false };
-    }
-
-    const stake1 = totalStake / (1 + (o1 / o2));
-    const stake2 = totalStake - stake1;
-    const return1 = stake1 * o1;
-    const profit = return1 - totalStake;
-    const profitPercentage = (profit / totalStake) * 100;
-
-    return {
-      profit: profitPercentage,
-      stake1,
-      stake2,
-      hasArbitrage: true,
-      totalReturn: return1
-    };
   };
 
-  const result = calculateArbitrage();
+  const result = computeStakes(parseFloat(stake) || 0, {
+    home: parseFloat(odd1) || 0,
+    away: parseFloat(odd2) || 0,
+  });
 
   return (
     <Card className="p-6 bg-gradient-card border-border">
@@ -58,7 +45,7 @@ const ArbitrageCalculator = () => {
             id="stake"
             type="number"
             value={stake}
-            onChange={(e) => setStake(e.target.value)}
+            onChange={(e) => handleStakeChange(e.target.value)}
             className="mt-1"
             placeholder="1000"
           />
@@ -99,17 +86,17 @@ const ArbitrageCalculator = () => {
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-accent-foreground/80">Aposta 1:</span>
-              <span className="font-bold text-accent-foreground">R$ {result.stake1.toFixed(2)}</span>
+              <span className="font-bold text-accent-foreground">R$ {result.stakes.home.toFixed(2)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-accent-foreground/80">Aposta 2:</span>
-              <span className="font-bold text-accent-foreground">R$ {result.stake2.toFixed(2)}</span>
+              <span className="font-bold text-accent-foreground">R$ {result.stakes.away.toFixed(2)}</span>
             </div>
             <div className="border-t border-accent-foreground/20 pt-2 mt-2">
               <div className="flex justify-between text-base">
                 <span className="text-accent-foreground/80">Lucro:</span>
                 <span className="font-bold text-accent-foreground">
-                  R$ {(result.totalReturn! - parseFloat(stake)).toFixed(2)} ({result.profit.toFixed(2)}%)
+                  R$ {result.profit.toFixed(2)} ({result.profitPct.toFixed(2)}%)
                 </span>
               </div>
             </div>

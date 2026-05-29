@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import ArbitrageCalculator from "@/components/ArbitrageCalculator";
 import { Card } from "@/components/ui/card";
@@ -8,48 +7,34 @@ import { Button } from "@/components/ui/button";
 import { mockEvents, calculateArbitrage, bookmakers } from "@/data/mockData";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { TrendingUp, Calculator, Save, ExternalLink, RefreshCw } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { TrendingUp, Calculator, Save, ExternalLink, RefreshCw, AlertTriangle } from "lucide-react";
 import { useRealTimeOdds } from "@/hooks/useRealTimeOdds";
 import { useDataInitializer } from "@/hooks/useDataInitializer";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { computeStakes } from "@/lib/arbitrage";
+import type { Event } from "@/types/odds";
+
+interface ArbOpportunity {
+  event: Event;
+  profit: number;
+  bestHome: number;
+  bestAway: number;
+  bestDraw: number | null;
+  homeBookmaker: string;
+  awayBookmaker: string;
+  drawBookmaker: string | null;
+}
 
 const Arbitrage = () => {
-  const navigate = useNavigate();
   const { toast } = useToast();
-  const [user, setUser] = useState<any>(null);
-  
+  const { user } = useAuth();
+  const [calculatorStake, setCalculatorStake] = useState("1000");
+
   const { events: realEvents, loading } = useRealTimeOdds();
   const { isInitializing, hasData, refetch: refetchData } = useDataInitializer();
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast({
-          variant: "destructive",
-          title: "Acesso negado",
-          description: "Você precisa fazer login para acessar esta página.",
-        });
-        navigate("/auth");
-        return;
-      }
-      setUser(session.user);
-    };
-
-    checkAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) {
-        navigate("/auth");
-      } else {
-        setUser(session.user);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate, toast]);
-
-  const saveArbitrage = async (opportunity: any) => {
+  const saveArbitrage = async (opportunity: ArbOpportunity) => {
     if (!user) {
       toast({
         title: "Faça login",
@@ -59,10 +44,20 @@ const Arbitrage = () => {
       return;
     }
 
+    const total = parseFloat(calculatorStake) || 1000;
+    const breakdown = computeStakes(total, {
+      home: opportunity.bestHome,
+      draw: opportunity.bestDraw ?? undefined,
+      away: opportunity.bestAway,
+    });
+
+    const round = (v: number) => Number(v.toFixed(2));
     const stakes = [
-      { bookmaker: opportunity.homeBookmaker, outcome: opportunity.event.homeTeam, odd: opportunity.bestHome },
-      ...(opportunity.bestDraw ? [{ bookmaker: opportunity.drawBookmaker, outcome: "Empate", odd: opportunity.bestDraw }] : []),
-      { bookmaker: opportunity.awayBookmaker, outcome: opportunity.event.awayTeam, odd: opportunity.bestAway },
+      { bookmaker: opportunity.homeBookmaker, outcome: opportunity.event.homeTeam, odd: opportunity.bestHome, stake: round(breakdown.stakes.home) },
+      ...(opportunity.bestDraw
+        ? [{ bookmaker: opportunity.drawBookmaker, outcome: "Empate", odd: opportunity.bestDraw, stake: round(breakdown.stakes.draw ?? 0) }]
+        : []),
+      { bookmaker: opportunity.awayBookmaker, outcome: opportunity.event.awayTeam, odd: opportunity.bestAway, stake: round(breakdown.stakes.away) },
     ];
 
     const { error } = await supabase
@@ -71,7 +66,7 @@ const Arbitrage = () => {
         user_id: user.id,
         event_id: opportunity.event.id,
         profit_percentage: opportunity.profit,
-        total_stake: 1000,
+        total_stake: total,
         stakes,
       });
 
@@ -94,6 +89,7 @@ const Arbitrage = () => {
     return bookmaker?.url || "#";
   };
   
+  const isShowingMock = !loading && !isInitializing && realEvents.length === 0;
   const sourceEvents = realEvents.length > 0 ? realEvents : mockEvents;
   
   const arbitrageOpportunities = sourceEvents
@@ -158,15 +154,15 @@ const Arbitrage = () => {
           <Alert className="mb-6 border-primary/50 bg-primary/5">
             <AlertDescription className="flex items-center justify-between">
               <span className="text-foreground">
-                Nenhum dado encontrado. Clique em "Atualizar Dados" para carregar os eventos.
+                Nenhum dado disponível ainda. As odds são coletadas automaticamente em ciclos — clique para recarregar.
               </span>
-              <Button 
+              <Button
                 onClick={refetchData}
                 size="sm"
                 className="bg-gradient-primary"
               >
                 <RefreshCw className="h-4 w-4 mr-2" />
-                Atualizar Dados
+                Recarregar
               </Button>
             </AlertDescription>
           </Alert>
@@ -176,7 +172,7 @@ const Arbitrage = () => {
           <Alert className="mb-6 border-accent/50 bg-accent/5">
             <AlertDescription className="flex items-center gap-3">
               <RefreshCw className="h-4 w-4 animate-spin text-accent" />
-              <span className="text-foreground">Carregando dados das casas de apostas...</span>
+              <span className="text-foreground">Verificando dados…</span>
             </AlertDescription>
           </Alert>
         )}
@@ -184,7 +180,7 @@ const Arbitrage = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Calculator */}
           <div className="lg:col-span-1">
-            <ArbitrageCalculator />
+            <ArbitrageCalculator stake={calculatorStake} onStakeChange={setCalculatorStake} />
           </div>
 
           {/* Opportunities List */}
@@ -195,6 +191,15 @@ const Arbitrage = () => {
                 {arbitrageOpportunities.length} oportunidade(s) de arbitragem disponível(is)
               </p>
             </div>
+
+            {isShowingMock && (
+              <Alert className="mb-6 border-yellow-500/50 bg-yellow-500/10">
+                <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                <AlertDescription className="text-yellow-700 dark:text-yellow-400">
+                  <span className="font-medium">Atenção: dados de demonstração.</span> As oportunidades abaixo são fictícias e não refletem odds reais. Atualize os dados antes de tomar qualquer decisão.
+                </AlertDescription>
+              </Alert>
+            )}
 
             <div className="space-y-4">
               {arbitrageOpportunities.map((opp, index) => {

@@ -171,6 +171,28 @@ export type Database = {
       }
     }
     Views: {
+      latest_odds: {
+        Row: {
+          away_odd: number | null
+          bookmaker: string | null
+          bookmaker_url: string | null
+          draw_odd: number | null
+          event_id: string | null
+          home_odd: number | null
+          id: string | null
+          market_type: string | null
+          scraped_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "odds_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scraper_health: {
         Row: {
           bookmaker: string | null

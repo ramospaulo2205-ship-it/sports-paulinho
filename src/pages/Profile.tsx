@@ -7,62 +7,51 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { User, LogOut, History, Heart } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { Tables } from "@/integrations/supabase/types";
 
 const Profile = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
   const [fullName, setFullName] = useState("");
-  const [arbitrageHistory, setArbitrageHistory] = useState<any[]>([]);
-  const [favorites, setFavorites] = useState<any[]>([]);
+  const [arbitrageHistory, setArbitrageHistory] = useState<Tables<"arbitrage_history">[]>([]);
+  const [favorites, setFavorites] = useState<Tables<"favorites">[]>([]);
 
   useEffect(() => {
-    checkUser();
-  }, []);
+    if (!user) return;
+    loadData(user.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
-  const checkUser = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (!session) {
-      navigate("/auth");
-      return;
-    }
-
-    setUser(session.user);
-    
-    // Get profile
+  const loadData = async (userId: string) => {
     const { data: profile } = await supabase
       .from("profiles")
       .select("*")
-      .eq("id", session.user.id)
+      .eq("id", userId)
       .single();
-    
     if (profile) {
       setFullName(profile.full_name || "");
     }
 
-    // Get arbitrage history
     const { data: history } = await supabase
       .from("arbitrage_history")
       .select("*")
-      .eq("user_id", session.user.id)
+      .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .limit(10);
-    
     if (history) {
       setArbitrageHistory(history);
     }
 
-    // Get favorites
     const { data: favs } = await supabase
       .from("favorites")
       .select("*")
-      .eq("user_id", session.user.id)
+      .eq("user_id", userId)
       .order("created_at", { ascending: false });
-    
     if (favs) {
       setFavorites(favs);
     }

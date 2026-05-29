@@ -220,25 +220,4 @@ export const mockEvents: Event[] = [
 ];
 
 // Função para calcular se há oportunidade de arbitragem
-export const calculateArbitrage = (odds: { home: number; draw?: number; away: number }[]) => {
-  if (odds.length < 2) return null;
-
-  const bestHome = Math.max(...odds.map(o => o.home));
-  const bestAway = Math.max(...odds.map(o => o.away));
-  const hasDraw = odds.some(o => o.draw !== undefined && o.draw > 0);
-  const bestDraw = hasDraw ? Math.max(...odds.map(o => o.draw ?? 0)) : 0;
-
-  let inverseSum: number;
-  if (hasDraw && bestDraw > 0) {
-    inverseSum = (1 / bestHome) + (1 / bestDraw) + (1 / bestAway);
-  } else {
-    inverseSum = (1 / bestHome) + (1 / bestAway);
-  }
-
-  if (inverseSum < 1) {
-    const profit = ((1 / inverseSum) - 1) * 100;
-    return profit;
-  }
-
-  return null;
-};
+export { calculateArbitrage } from "@/lib/arbitrage";

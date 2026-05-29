@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import type { Event, Odds } from '@/types/odds';
+import type { Event } from '@/types/odds';
 
-interface DatabaseEvent {
+interface EventRow {
   id: string;
   event_key: string;
   sport: string;
@@ -10,16 +10,28 @@ interface DatabaseEvent {
   home_team: string;
   away_team: string;
   commence_time: string;
-  status: string;
-  odds: Array<{
-    id: string;
-    bookmaker: string;
-    bookmaker_url: string | null;
-    home_odd: number;
-    draw_odd: number | null;
-    away_odd: number;
-    scraped_at: string;
-  }>;
+  status: string | null;
+}
+
+interface LatestOddRow {
+  id: string | null;
+  event_id: string | null;
+  bookmaker: string | null;
+  bookmaker_url: string | null;
+  home_odd: number | null;
+  draw_odd: number | null;
+  away_odd: number | null;
+  scraped_at: string | null;
+}
+
+interface OddInsertRow {
+  event_id: string | null;
+  bookmaker: string;
+  bookmaker_url: string | null;
+  home_odd: number;
+  draw_odd: number | null;
+  away_odd: number;
+  scraped_at: string | null;
 }
 
 function normalizeSportId(value: string): string {
@@ -40,8 +52,33 @@ function normalizeSportId(value: string): string {
     'icehockey_nhl': 'icehockey',
     'tennis_atp_aus_open_singles': 'tennis',
     'mma_mixed_martial_arts': 'mma',
+    'tennis_atp_singles': 'tennis',
+    'tennis_wta_singles': 'tennis',
+    'esports_lol_worlds': 'esports',
   };
   return map[value] ?? value;
+}
+
+function toEvent(row: EventRow, odds: LatestOddRow[]): Event {
+  const commenceDate = new Date(row.commence_time);
+  return {
+    id: row.id,
+    sport: normalizeSportId(row.sport),
+    league: row.league,
+    homeTeam: row.home_team,
+    awayTeam: row.away_team,
+    date: commenceDate.toISOString().split('T')[0],
+    time: commenceDate.toTimeString().slice(0, 5),
+    commenceTime: row.commence_time,
+    odds: odds.map((o) => ({
+      bookmaker: o.bookmaker ?? '',
+      home: Number(o.home_odd),
+      draw: o.draw_odd != null ? Number(o.draw_odd) : undefined,
+      away: Number(o.away_odd),
+      url: o.bookmaker_url || undefined,
+      timestamp: o.scraped_at ?? undefined,
+    })),
+  };
 }
 
 export function useRealTimeOdds(sport?: string) {
@@ -50,54 +87,14 @@ export function useRealTimeOdds(sport?: string) {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
-  useEffect(() => {
-    fetchLatestOdds();
-
-    // Subscription para updates em tempo real
-    const channel = supabase
-      .channel('odds_updates')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'odds',
-        },
-        (payload) => {
-          console.log('[Realtime] Odds updated:', payload);
-          fetchLatestOdds();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'events',
-        },
-        (payload) => {
-          console.log('[Realtime] Events updated:', payload);
-          fetchLatestOdds();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [sport]);
-
-  async function fetchLatestOdds() {
+  const fetchLatestOdds = useCallback(async () => {
     try {
       setError(null);
-      
-      // Buscar eventos futuros
+
+      // 1) Eventos futuros
       let query = supabase
         .from('events')
-        .select(`
-          *,
-          odds:odds(*)
-        `)
+        .select('*')
         .gte('commence_time', new Date().toISOString())
         .eq('status', 'upcoming')
         .order('commence_time', { ascending: true });
@@ -106,66 +103,96 @@ export function useRealTimeOdds(sport?: string) {
         query = query.eq('sport', sport);
       }
 
-      const { data, error: fetchError } = await query;
-
-      if (fetchError) {
-        console.error('[useRealTimeOdds] Fetch error:', fetchError);
-        setError(fetchError.message);
+      const { data: eventsData, error: eventsError } = await query;
+      if (eventsError) {
+        console.error('[useRealTimeOdds] Events error:', eventsError);
+        setError(eventsError.message);
         return;
       }
-
-      if (!data) {
+      if (!eventsData || eventsData.length === 0) {
         setEvents([]);
         return;
       }
 
-      // Transformar para formato do frontend
-      const transformedEvents: Event[] = (data as DatabaseEvent[]).map((event) => {
-        // Agrupar odds mais recentes por bookmaker
-        const latestOddsByBookmaker = event.odds.reduce((acc: Record<string, any>, odd: any) => {
-          if (!acc[odd.bookmaker] || new Date(odd.scraped_at) > new Date(acc[odd.bookmaker].scraped_at)) {
-            acc[odd.bookmaker] = odd;
-          }
-          return acc;
-        }, {});
+      // 2) Apenas a última odd por (evento, bookmaker), já reduzida no banco
+      const ids = eventsData.map((e) => e.id);
+      const { data: oddsData, error: oddsError } = await supabase
+        .from('latest_odds')
+        .select('*')
+        .in('event_id', ids);
+      if (oddsError) {
+        console.error('[useRealTimeOdds] Odds error:', oddsError);
+        setError(oddsError.message);
+        return;
+      }
 
-        const commenceDate = new Date(event.commence_time);
-
-        return {
-          id: event.id,
-          sport: normalizeSportId(event.sport),
-          league: event.league,
-          homeTeam: event.home_team,
-          awayTeam: event.away_team,
-          date: commenceDate.toISOString().split('T')[0],
-          time: commenceDate.toTimeString().slice(0, 5),
-          commenceTime: event.commence_time,
-          odds: Object.values(latestOddsByBookmaker).map((odd: any) => ({
-            bookmaker: odd.bookmaker,
-            home: Number(odd.home_odd),
-            draw: odd.draw_odd ? Number(odd.draw_odd) : undefined,
-            away: Number(odd.away_odd),
-            url: odd.bookmaker_url || undefined,
-            timestamp: odd.scraped_at,
-          })),
-        };
+      const byEvent = new Map<string, LatestOddRow[]>();
+      (oddsData ?? []).forEach((o) => {
+        if (!o.event_id) return;
+        const arr = byEvent.get(o.event_id) ?? [];
+        arr.push(o);
+        byEvent.set(o.event_id, arr);
       });
 
-      setEvents(transformedEvents);
+      setEvents(eventsData.map((e) => toEvent(e as EventRow, byEvent.get(e.id) ?? [])));
       setLastUpdate(new Date());
-    } catch (error: any) {
-      console.error('[useRealTimeOdds] Error:', error);
-      setError(error.message);
+    } catch (e) {
+      console.error('[useRealTimeOdds] Error:', e);
+      setError(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
     }
-  }
+  }, [sport]);
 
-  return { 
-    events, 
-    loading, 
+  useEffect(() => {
+    fetchLatestOdds();
+
+    const channel = supabase
+      .channel('odds_updates')
+      // Update incremental: aplica só a odd inserida ao evento correspondente
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'odds' },
+        (payload) => {
+          const row = payload.new as OddInsertRow;
+          setEvents((prev) =>
+            prev.map((ev) => {
+              if (ev.id !== row.event_id) return ev;
+              const odds = ev.odds.filter((o) => o.bookmaker !== row.bookmaker);
+              odds.push({
+                bookmaker: row.bookmaker,
+                home: Number(row.home_odd),
+                draw: row.draw_odd != null ? Number(row.draw_odd) : undefined,
+                away: Number(row.away_odd),
+                url: row.bookmaker_url || undefined,
+                timestamp: row.scraped_at ?? undefined,
+              });
+              return { ...ev, odds };
+            }),
+          );
+          setLastUpdate(new Date());
+        },
+      )
+      // Eventos novos/removidos/status alterado: refetch leve
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'events' },
+        () => {
+          fetchLatestOdds();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchLatestOdds]);
+
+  return {
+    events,
+    loading,
     error,
     lastUpdate,
-    refetch: fetchLatestOdds 
+    refetch: fetchLatestOdds,
   };
 }

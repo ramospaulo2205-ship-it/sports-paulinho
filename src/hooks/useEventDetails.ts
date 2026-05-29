@@ -2,6 +2,15 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Event } from '@/types/odds';
 
+interface LatestOddRow {
+  bookmaker: string | null;
+  bookmaker_url: string | null;
+  home_odd: number | null;
+  draw_odd: number | null;
+  away_odd: number | null;
+  scraped_at: string | null;
+}
+
 export function useEventDetails(eventId?: string) {
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
@@ -39,26 +48,24 @@ export function useEventDetails(eventId?: string) {
   async function fetchEvent() {
     try {
       setError(null);
+
       const { data, error: qErr } = await supabase
         .from('events')
-        .select('*, odds:odds(*)')
+        .select('*')
         .eq('id', eventId!)
         .maybeSingle();
 
       if (qErr) throw qErr;
-
       if (!data) {
         setEvent(null);
         return;
       }
 
-      // Reduce to latest odds per bookmaker
-      const latestByBookmaker = (data.odds || []).reduce((acc: Record<string, any>, odd: any) => {
-        if (!acc[odd.bookmaker] || new Date(odd.scraped_at) > new Date(acc[odd.bookmaker].scraped_at)) {
-          acc[odd.bookmaker] = odd;
-        }
-        return acc;
-      }, {});
+      const { data: oddsData, error: oddsErr } = await supabase
+        .from('latest_odds')
+        .select('*')
+        .eq('event_id', eventId!);
+      if (oddsErr) throw oddsErr;
 
       const commenceDate = new Date(data.commence_time);
 
@@ -71,19 +78,19 @@ export function useEventDetails(eventId?: string) {
         date: commenceDate.toISOString().split('T')[0],
         time: commenceDate.toTimeString().slice(0, 5),
         commenceTime: data.commence_time,
-        odds: Object.values(latestByBookmaker).map((odd: any) => ({
-          bookmaker: odd.bookmaker,
+        odds: ((oddsData ?? []) as LatestOddRow[]).map((odd) => ({
+          bookmaker: odd.bookmaker ?? '',
           home: Number(odd.home_odd),
           draw: odd.draw_odd != null ? Number(odd.draw_odd) : undefined,
           away: Number(odd.away_odd),
           url: odd.bookmaker_url || undefined,
-          timestamp: odd.scraped_at,
+          timestamp: odd.scraped_at ?? undefined,
         })),
       };
 
       setEvent(transformed);
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
     }

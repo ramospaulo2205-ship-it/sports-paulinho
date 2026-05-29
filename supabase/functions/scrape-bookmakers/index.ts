@@ -10,21 +10,14 @@ const ODDS_API_KEY = Deno.env.get('ODDS_API_KEY');
 const ODDS_API_BASE = 'https://api.the-odds-api.com/v4';
 
 // Esportes para buscar da API (com foco em eventos brasileiros e internacionais populares)
+// Plano free da The Odds API = 500 req/mês. 1 crédito por esporte por scrape.
+// 5 esportes (um por aba do app) × 2 scrapes/dia × 30 = 300 req/mês.
 const SPORTS_TO_FETCH = [
-  'soccer_brazil_campeonato',      // Brasileirão
-  'soccer_uefa_champs_league',     // Champions League
-  'soccer_uefa_europa_league',     // Europa League
-  'soccer_epl',                    // Premier League
-  'soccer_spain_la_liga',          // La Liga
-  'soccer_italy_serie_a',          // Serie A
-  'soccer_germany_bundesliga',     // Bundesliga
-  'soccer_france_ligue_one',       // Ligue 1
-  'basketball_nba',                // NBA
-  'basketball_euroleague',         // EuroLeague
-  'americanfootball_nfl',          // NFL
-  'icehockey_nhl',                 // NHL
-  'tennis_atp_aus_open_singles',   // Australian Open
-  'mma_mixed_martial_arts',        // UFC/MMA
+  'soccer_brazil_campeonato',    // futebol (aba Futebol)
+  'basketball_nba',              // basquete (aba Basquete)
+  'tennis_atp_singles',          // tênis (aba Tênis)
+  'esports_lol_worlds',          // e-sports (aba E-Sports)
+  'mma_mixed_martial_arts',      // UFC/MMA (aba UFC/MMA)
 ];
 
 interface OddsAPIEvent {
@@ -49,7 +42,7 @@ interface OddsAPIEvent {
 
 async function fetchOddsFromAPI(sport: string): Promise<OddsAPIEvent[]> {
   try {
-    const url = `${ODDS_API_BASE}/sports/${sport}/odds/?apiKey=${ODDS_API_KEY}&regions=us,uk,eu,au&markets=h2h&oddsFormat=decimal&dateFormat=iso`;
+    const url = `${ODDS_API_BASE}/sports/${sport}/odds/?apiKey=${ODDS_API_KEY}&regions=eu&markets=h2h&oddsFormat=decimal&dateFormat=iso`;
     
     console.log(`[${sport}] Fetching odds from The Odds API...`);
     
@@ -89,6 +82,9 @@ function mapSportName(sportKey: string): string {
     'americanfootball_nfl': 'football',
     'icehockey_nhl': 'icehockey',
     'tennis_atp_aus_open_singles': 'tennis',
+    'tennis_atp_singles': 'tennis',
+    'tennis_wta_singles': 'tennis',
+    'esports_lol_worlds': 'esports',
     'mma_mixed_martial_arts': 'mma',
   };
 
@@ -132,6 +128,16 @@ function getBookmakerUrl(bookmakerKey: string): string {
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // Autorização: só o agendador (pg_cron) com o segredo pode disparar o scraper.
+  // Evita que terceiros queimem a cota da The Odds API ou escrevam no banco.
+  const CRON_SECRET = Deno.env.get('CRON_SECRET');
+  if (!CRON_SECRET || req.headers.get('x-cron-secret') !== CRON_SECRET) {
+    return new Response(
+      JSON.stringify({ success: false, error: 'unauthorized' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 
   const supabase = createClient(
@@ -178,7 +184,9 @@ serve(async (req) => {
         continue; // Pular eventos muito distantes
       }
 
-      const eventKey = `${apiEvent.sport_key}_${apiEvent.home_team}_${apiEvent.away_team}`.replace(/\s+/g, '_');
+      // Inclui a data do confronto para não colidir returno/rematch dos mesmos times
+      const eventDay = apiEvent.commence_time.slice(0, 10); // YYYY-MM-DD
+      const eventKey = `${apiEvent.sport_key}_${apiEvent.home_team}_${apiEvent.away_team}_${eventDay}`.replace(/\s+/g, '_');
       
       // Upsert evento
       const { data: eventData, error: eventError } = await supabase
@@ -202,15 +210,15 @@ serve(async (req) => {
 
       eventsProcessed++;
 
-      // Processar odds de cada bookmaker
+      // Montar as odds de cada bookmaker e inserir em lote (1 insert por evento)
+      const oddsRows = [];
       for (const bookmaker of apiEvent.bookmakers) {
         const h2hMarket = bookmaker.markets.find(m => m.key === 'h2h');
-        
+
         if (!h2hMarket || !h2hMarket.outcomes || h2hMarket.outcomes.length < 2) {
           continue;
         }
 
-        // Encontrar as odds
         const homeOdds = h2hMarket.outcomes.find(o => o.name === apiEvent.home_team);
         const awayOdds = h2hMarket.outcomes.find(o => o.name === apiEvent.away_team);
         const drawOdds = h2hMarket.outcomes.find(o => o.name === 'Draw');
@@ -219,8 +227,7 @@ serve(async (req) => {
           continue;
         }
 
-        // Inserir odds
-        const { error: oddError } = await supabase.from('odds').insert({
+        oddsRows.push({
           event_id: eventData.id,
           bookmaker: mapBookmakerName(bookmaker.key),
           bookmaker_url: getBookmakerUrl(bookmaker.key),
@@ -228,11 +235,14 @@ serve(async (req) => {
           draw_odd: drawOdds?.price || null,
           away_odd: awayOdds.price,
         });
+      }
 
+      if (oddsRows.length > 0) {
+        const { error: oddError } = await supabase.from('odds').insert(oddsRows);
         if (oddError) {
-          console.error('[DB] Odd insert error:', oddError);
+          console.error('[DB] Odds batch insert error:', oddError);
         } else {
-          oddsProcessed++;
+          oddsProcessed += oddsRows.length;
         }
       }
     }
