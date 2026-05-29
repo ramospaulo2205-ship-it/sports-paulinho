@@ -10,21 +10,14 @@ const ODDS_API_KEY = Deno.env.get('ODDS_API_KEY');
 const ODDS_API_BASE = 'https://api.the-odds-api.com/v4';
 
 // Esportes para buscar da API (com foco em eventos brasileiros e internacionais populares)
+// Plano free da The Odds API = 500 req/mês. 1 crédito por esporte por scrape.
+// 5 esportes (um por aba do app) × 2 scrapes/dia × 30 = 300 req/mês.
 const SPORTS_TO_FETCH = [
-  'soccer_brazil_campeonato',      // Brasileirão
-  'soccer_uefa_champs_league',     // Champions League
-  'soccer_uefa_europa_league',     // Europa League
-  'soccer_epl',                    // Premier League
-  'soccer_spain_la_liga',          // La Liga
-  'soccer_italy_serie_a',          // Serie A
-  'soccer_germany_bundesliga',     // Bundesliga
-  'soccer_france_ligue_one',       // Ligue 1
-  'basketball_nba',                // NBA
-  'basketball_euroleague',         // EuroLeague
-  'americanfootball_nfl',          // NFL
-  'icehockey_nhl',                 // NHL
-  'tennis_atp_aus_open_singles',   // Australian Open
-  'mma_mixed_martial_arts',        // UFC/MMA
+  'soccer_brazil_campeonato',    // futebol (aba Futebol)
+  'basketball_nba',              // basquete (aba Basquete)
+  'tennis_atp_singles',          // tênis (aba Tênis)
+  'esports_lol_worlds',          // e-sports (aba E-Sports)
+  'mma_mixed_martial_arts',      // UFC/MMA (aba UFC/MMA)
 ];
 
 interface OddsAPIEvent {
@@ -89,6 +82,9 @@ function mapSportName(sportKey: string): string {
     'americanfootball_nfl': 'football',
     'icehockey_nhl': 'icehockey',
     'tennis_atp_aus_open_singles': 'tennis',
+    'tennis_atp_singles': 'tennis',
+    'tennis_wta_singles': 'tennis',
+    'esports_lol_worlds': 'esports',
     'mma_mixed_martial_arts': 'mma',
   };
 
