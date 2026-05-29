@@ -118,3 +118,22 @@ curl -i -X POST https://utxylkasnnamxdgbatau.functions.supabase.co/scrape-bookma
 # 200 com o header:
 curl -i -X POST -H "x-cron-secret: <CRON_SECRET>" https://utxylkasnnamxdgbatau.functions.supabase.co/scrape-bookmakers
 ```
+
+---
+
+## 2026-05-29 — Fase F EXECUTADA (deploy concluído)
+
+**Descoberta importante:** o ref `utxylkasnnamxdgbatau` (do `.env`/`config` antigos) **não existe mais** na conta. O backend de produção real é **`flltoxywqffocnlbottb`** (São Paulo, criado 27/abr) — tinha `events`/`odds` com dados scraped, mas **sem** as tabelas da 1ª migration (`profiles`/`favorites`/`arbitrage_history`), que estavam quebradas em prod.
+
+Passos efetivos:
+1. `flltoxywqffocnlbottb` estava **pausado** → despausado no dashboard.
+2. Remoto sem histórico de migration → `migration repair --status applied 20251104203035 20251104203121` (schema já existia).
+3. `db push --include-all` aplicou **3 migrations**: `20251011…` (cria as tabelas de auth que faltavam — conserta prod), `latest_odds`, retenção+cron de limpeza.
+4. `secrets set CRON_SECRET=…` e (depois) `ODDS_API_KEY=…`.
+5. `functions deploy scrape-bookmakers` (v5). `fetch-odds` não existia no remoto (nada a deletar).
+6. Cron de limpeza criado pela migration (jobid 1); cron `scrape-odds` `*/15` agendado via SQL no dashboard (jobid 2).
+7. Smoke test do gate: sem header→401, secret errado→401, secret correto→200.
+8. Scrape manual real: **56 eventos / 524 odds**. Banco: `events`=61, `odds`=549, `latest_odds`=549.
+9. `.env` e `config.toml` corrigidos para `flltoxywqffocnlbottb`.
+
+**Pendência operacional (atenção a custo):** o cron `*/15` × 14 esportes ≈ **40k req/mês** na The Odds API — estoura o plano free (500/mês). Reduzir frequência/esportes conforme o plano contratado. Ajustar via `cron.unschedule('scrape-odds')` + novo `cron.schedule(...)`.
